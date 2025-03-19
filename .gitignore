@@ -1,0 +1,22 @@
+# Flutter
+**/build/
+**/.dart_tool/
+**/.packages
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+**/.metadata
+**/pubspec.lock
+
+# Kotlin / Android
+**/.gradle/
+**/local.properties
+**/.idea/
+**/*.iml
+**/build/
+**/captures/
+
+# General
+**/.DS_Store
+**/.vscode/
+**/*.log
+**/node_modules/
