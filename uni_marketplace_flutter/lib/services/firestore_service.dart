@@ -1,10 +1,15 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 
 class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
   // USERS
   Future<void> createUser(String userId, Map<String, dynamic> data) async {
+    String imageUrl = await uploadImage('users');
+    data['profileImage'] = imageUrl;
     await _db.collection('users').doc(userId).set(data);
   }
 
@@ -15,6 +20,8 @@ class FirestoreService {
 
   // PRODUCTS
   Future<void> addProduct(Map<String, dynamic> data) async {
+    String imageUrl = await uploadImage('products');
+    data['imageUrl'] = imageUrl;
     await _db.collection('products').add(data);
   }
 
@@ -53,5 +60,17 @@ class FirestoreService {
         .where('buyerId', isEqualTo: userId)
         .get();
     return snapshot.docs.map((doc) => doc.data() as Map<String, dynamic>).toList();
+  }
+
+  Future<String> uploadImage(String folder) async {
+    final picker = ImagePicker();
+    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+    if (image == null) throw 'No image selected';
+
+    File file = File(image.path);
+    String fileName = DateTime.now().millisecondsSinceEpoch.toString();
+    var ref = FirebaseStorage.instance.ref().child('$folder/$fileName.jpg');
+    await ref.putFile(file);
+    return await ref.getDownloadURL();
   }
 }
