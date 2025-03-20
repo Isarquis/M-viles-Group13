@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:uni_marketplace_flutter/screens/product_detail.dart';
 
 class ProductList extends StatefulWidget {
   const ProductList({super.key});
@@ -60,7 +61,6 @@ class _ProductListState extends State<ProductList> {
           Expanded(
             child: _buildProductList(),
           ),
-          _buildBottomNavigation(),
         ],
       ),
     );
@@ -236,7 +236,16 @@ class _ProductListState extends State<ProductList> {
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
-                        onPressed: () {},
+                        onPressed: product["title"] == "Probabilidad y estadística para ingeniería y ciencias"
+                            ? () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => ProductDetail(productId: '60J3pS3bRnFjrksPd8hL'),
+                                  ),
+                                );
+                              }
+                            : () {},
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF1F7A8C),
                           padding: const EdgeInsets.symmetric(vertical: 8),
@@ -260,58 +269,6 @@ class _ProductListState extends State<ProductList> {
           ),
         );
       },
-    );
-  }
-
-  Widget _buildBottomNavigation() {
-    return Container(
-      height: 60,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.2),
-            spreadRadius: 1,
-            blurRadius: 3,
-            offset: const Offset(0, -1),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _buildNavItem(Icons.home, "Home", false),
-          _buildNavItem(Icons.explore, "Discover", true),
-          _buildNavItem(Icons.attach_money, "Earn", false),
-          _buildNavItem(Icons.post_add, "Post", false),
-          _buildNavItem(Icons.map, "Map", false),
-          _buildNavItem(Icons.person, "Profile", false),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNavItem(IconData icon, String label, bool isSelected) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Icon(
-          icon,
-          color: isSelected
-              ? const Color(0xFF1F7A8C)
-              : const Color(0xFF4F7A94),
-          size: 24,
-        ),
-        Text(
-          label,
-          style: TextStyle(
-            color: isSelected
-                ? const Color(0xFF1F7A8C)
-                : const Color(0xFF4F7A94),
-            fontSize: 12,
-          ),
-        ),
-      ],
     );
   }
 }
