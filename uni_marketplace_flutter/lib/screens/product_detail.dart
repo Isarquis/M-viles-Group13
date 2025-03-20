@@ -50,9 +50,11 @@ class _ProductDetailState extends State<ProductDetail> {
           'price': products[0]['price'].toString(),
           'description': products[0]['description'] ?? 'No description',
           'imageUrl': 'assets/images/ProbabilidadYEstadistica.jpg',
+          'baseBid': products[0]['baseBid'] ?? '50.000', // Added baseBid
         };
       });
     }
+    print(product);
   }
 
   List<Map<String, dynamic>> bidWithUser = [];
@@ -61,7 +63,6 @@ class _ProductDetailState extends State<ProductDetail> {
     var combined = await FirestoreService().getBidsWithUsersByProduct(
       widget.productId,
     );
-    print(combined);
 
     for (var item in combined) {
       var bid = item['bid'];
@@ -188,10 +189,7 @@ class _ProductDetailState extends State<ProductDetail> {
                     SizedBox(height: 16),
                     Row(
                       children: [
-                        Image.asset(
-                          'assets/images/calculadora.png',
-                          width: 100,
-                        ),
+                        Image.asset(product['imageUrl'], width: 100),
                         SizedBox(width: 16),
                         Expanded(
                           child: Column(
@@ -202,12 +200,14 @@ class _ProductDetailState extends State<ProductDetail> {
                                   style: TextStyle(color: Colors.black),
                                   children: [
                                     TextSpan(
-                                      text: 'Price set by owner:',
+                                      text: 'Minimum bidding price:',
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
-                                    TextSpan(text: ' 50.000 COP'),
+                                    TextSpan(
+                                      text: ' ${product['baseBid'] ?? ''} COP',
+                                    ),
                                   ],
                                 ),
                               ),
@@ -217,18 +217,20 @@ class _ProductDetailState extends State<ProductDetail> {
                                 style: TextStyle(fontWeight: FontWeight.bold),
                               ),
                               SizedBox(height: 8),
-                              Container(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 8,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Color(0xFFE1E5F2),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(
-                                  'ej. 35.000',
-                                  style: TextStyle(color: Colors.blueGrey),
+                              TextField(
+                                decoration: InputDecoration(
+                                  contentPadding: EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 8,
+                                  ),
+                                  hintText: 'ej. 35.000',
+                                  hintStyle: TextStyle(color: Colors.blueGrey),
+                                  filled: true,
+                                  fillColor: Color(0xFFE1E5F2),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                    borderSide: BorderSide.none,
+                                  ),
                                 ),
                               ),
                             ],
@@ -298,7 +300,9 @@ class _ProductDetailState extends State<ProductDetail> {
                               ),
                               SizedBox(height: 4),
                               Text(
-                                user != null ? user['name'] ?? 'Unknown' : 'User not found',
+                                user != null
+                                    ? user['name'] ?? 'Unknown'
+                                    : 'User not found',
                                 style: TextStyle(fontWeight: FontWeight.bold),
                               ),
                             ],
@@ -318,7 +322,9 @@ class _ProductDetailState extends State<ProductDetail> {
                                           fontWeight: FontWeight.bold,
                                         ),
                                       ),
-                                      TextSpan(text: '${bid['createdAt'] ?? ''}'),
+                                      TextSpan(
+                                        text: '${bid['createdAt'] ?? ''}',
+                                      ),
                                     ],
                                   ),
                                 ),
