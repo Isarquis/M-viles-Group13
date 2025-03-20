@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'screens/product_detail.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'screens/product_list.dart'; 
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -30,14 +31,29 @@ class HomeScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Home')),
       body: Center(
-        child: ElevatedButton(
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => ProductDetail()),
-            );
-          },
-          child: const Text('Go to Product Detail'),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const ProductList()),
+                );
+              },
+              child: const Text('Go to Product List'),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => ProductDetail()),
+                );
+              },
+              child: const Text('Go to Product Detail'),
+            ),
+          ],
         ),
       ),
     );
