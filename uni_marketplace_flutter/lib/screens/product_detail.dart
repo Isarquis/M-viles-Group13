@@ -1,6 +1,28 @@
 import 'package:flutter/material.dart';
+import 'package:uni_marketplace_flutter/services/firestore_service.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+Map<String, dynamic> fallbackProduct = {
+  'name': 'Probabilidad y estadística para ingeniería y ciencias',
+  'price': '35.000',
+  'description': 'In good condition',
+  'imageUrl': 'assets/images/ProbabilidadYEstadistica.jpg',
+};
+
+List<Map<String, dynamic>> fallbackBids = [
+  {
+    'bidderName': 'Juan Herrera',
+    'time': '1 Day - 14/10/25',
+    'price': '5.000',
+    'contact': '+57 323 122 3511',
+    'email': 'j.herrera@uniandes.edu.co',
+  },
+];
 
 class ProductDetail extends StatefulWidget {
+  final String productId;
+  const ProductDetail({required this.productId, super.key});
+
   @override
   _ProductDetailState createState() => _ProductDetailState();
 }
@@ -8,6 +30,53 @@ class ProductDetail extends StatefulWidget {
 class _ProductDetailState extends State<ProductDetail> {
   bool showBidders = false;
   bool showPlaceBid = false;
+  List<Map<String, dynamic>> users = [];
+  Map<String, dynamic> product = fallbackProduct;
+  List<Map<String, dynamic>> bids = [];
+
+  @override
+  void initState() {
+    super.initState();
+    loadProduct();
+    loadBids();
+  }
+
+  Future<void> loadProduct() async {
+    var products = await FirestoreService().getAllProducts();
+    if (products.isNotEmpty) {
+      setState(() {
+        product = {
+          'name': products[0]['title'] ?? 'No Name',
+          'price': products[0]['price'].toString(),
+          'description': products[0]['description'] ?? 'No description',
+          'imageUrl': 'assets/images/ProbabilidadYEstadistica.jpg',
+        };
+      });
+    }
+  }
+
+  List<Map<String, dynamic>> bidWithUser = [];
+
+  Future<void> loadBids() async {
+    var combined = await FirestoreService().getBidsWithUsersByProduct(
+      widget.productId,
+    );
+    print(combined);
+
+    for (var item in combined) {
+      var bid = item['bid'];
+      if (bid['createdAt'] is Timestamp) {
+        var ts = bid['createdAt'] as Timestamp;
+        var date = ts.toDate();
+        bid['createdAt'] =
+            '${date.day}/${date.month}/${date.year} ${date.hour}:${date.minute}';
+      }
+    }
+
+    setState(() {
+      bidWithUser = combined;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -19,20 +88,16 @@ class _ProductDetailState extends State<ProductDetail> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Center(
-                child: Image.asset(
-                  'assets/images/ProbabilidadYEstadistica.jpg',
-                ),
-              ),
+              Center(child: Image.asset(product['imageUrl'])),
               SizedBox(height: 16),
               Text(
-                'Probabilidad y estadística para ingeniería y ciencias',
+                product['name'],
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
               ),
               SizedBox(height: 8),
               Center(
                 child: Text(
-                  '\$35.000',
+                  '\$${product['price']}',
                   style: TextStyle(
                     color: Colors.red,
                     fontWeight: FontWeight.bold,
@@ -46,9 +111,7 @@ class _ProductDetailState extends State<ProductDetail> {
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
               SizedBox(height: 8),
-              Text(
-                'Probabilidad y Estadística para Ingeniería y Ciencias ofrece un enfoque moderno y aplicado a las matemáticas, adoptado en todo el mundo.',
-              ),
+              Text(product['description']),
               SizedBox(height: 16),
               Row(
                 children: [
@@ -213,92 +276,82 @@ class _ProductDetailState extends State<ProductDetail> {
                     ),
                   ],
                 ),
-                SizedBox(height: 8),
-                ListTile(
-                  leading: CircleAvatar(
-                    backgroundImage: AssetImage('assets/images/bidder1.jpg'),
-                  ),
-                  title: Text(
-                    'Juan Herrera',
-                    style: TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text.rich(
-                        TextSpan(
-                          text: 'Time: ',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                          children: [
-                            TextSpan(
-                              text: '1 Day - 14/10/25',
-                              style: TextStyle(fontWeight: FontWeight.normal),
+                SizedBox(height: 10),
+                ListView.builder(
+                  shrinkWrap: true,
+                  physics: NeverScrollableScrollPhysics(),
+                  itemCount: bidWithUser.length,
+                  itemBuilder: (context, index) {
+                    final bid = bidWithUser[index]['bid'];
+                    final user = bidWithUser[index]['user'];
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 10.0),
+                      child: Row(
+                        children: [
+                          Column(
+                            children: [
+                              CircleAvatar(
+                                backgroundImage: AssetImage(
+                                  'assets/images/bidder${index + 1}.jpg',
+                                ),
+                                radius: 30,
+                              ),
+                              SizedBox(height: 4),
+                              Text(
+                                user != null ? user['name'] ?? 'Unknown' : 'User not found',
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                            ],
+                          ),
+                          SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                RichText(
+                                  text: TextSpan(
+                                    style: TextStyle(color: Colors.black),
+                                    children: [
+                                      TextSpan(
+                                        text: 'Time: ',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      TextSpan(text: '${bid['createdAt'] ?? ''}'),
+                                    ],
+                                  ),
+                                ),
+                                RichText(
+                                  text: TextSpan(
+                                    style: TextStyle(color: Colors.black),
+                                    children: [
+                                      TextSpan(
+                                        text: 'Amount: ',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      TextSpan(
+                                        text: '${bid['amount'] ?? ''} COP',
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Text('+57 ${user?['phone'] ?? ''}'),
+                                Text(
+                                  user?['email'] ?? '',
+                                  style: TextStyle(
+                                    decoration: TextDecoration.underline,
+                                  ),
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
-                      Text.rich(
-                        TextSpan(
-                          text: 'Price: ',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                          children: [
-                            TextSpan(
-                              text: '5.000 COP',
-                              style: TextStyle(fontWeight: FontWeight.normal),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Text('+57 323 122 3511'),
-                      Text(
-                        'j.herrera@uniandes.edu.co',
-                        style: TextStyle(decoration: TextDecoration.underline),
-                      ),
-                    ],
-                  ),
-                ),
-                ListTile(
-                  leading: CircleAvatar(
-                    backgroundImage: AssetImage('assets/images/bidder2.jpg'),
-                  ),
-                  title: Text(
-                    'Juan Herrera',
-                    style: TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text.rich(
-                        TextSpan(
-                          text: 'Time: ',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                          children: [
-                            TextSpan(
-                              text: '1 Day - 14/10/25',
-                              style: TextStyle(fontWeight: FontWeight.normal),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Text.rich(
-                        TextSpan(
-                          text: 'Price: ',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                          children: [
-                            TextSpan(
-                              text: '5.000 COP',
-                              style: TextStyle(fontWeight: FontWeight.normal),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Text('+57 323 122 3511'),
-                      Text(
-                        'j.herrera@uniandes.edu.co',
-                        style: TextStyle(decoration: TextDecoration.underline),
-                      ),
-                    ],
-                  ),
+                    );
+                  },
                 ),
               ] else ...[
                 Divider(),
