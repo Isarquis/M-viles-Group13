@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'screens/product_detail.dart';
+import 'screens/product_list.dart'; // <-- Importamos tu ProductList
 
 void main() {
   runApp(const MyApp());
@@ -26,14 +27,29 @@ class HomeScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Home')),
       body: Center(
-        child: ElevatedButton(
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => ProductDetail()),
-            );
-          },
-          child: const Text('Go to Product Detail'),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const ProductList()),
+                );
+              },
+              child: const Text('Go to Product List'),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => ProductDetail()),
+                );
+              },
+              child: const Text('Go to Product Detail'),
+            ),
+          ],
         ),
       ),
     );
