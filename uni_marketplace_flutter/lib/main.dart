@@ -4,6 +4,7 @@ import 'screens/product_list.dart';
 import 'screens/test_products_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'widgets/custom_navbar.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -24,53 +25,36 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  int currentIndex = 0;
+
+  final List<Widget> screens = [
+    Center(child: Text('Home')), 
+    ProductList(),
+    ProductDetail(productId: '60J3pS3bRnFjrksPd8hL'),
+    TestProductsScreen(),
+    Center(child: Text('Map')),
+    Center(child: Text('Profile')),
+  ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Home')),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const ProductList()),
-                );
-              },
-              child: const Text('Go to Product List'),
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder:
-                        (_) => const ProductDetail(
-                          productId: '60J3pS3bRnFjrksPd8hL',
-                        ),
-                  ),
-                );
-              },
-              child: const Text('Go to Product Detail'),
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => TestProductsScreen()),
-                );
-              },
-              child: const Text('Test Firestore Products'),
-            ),
-          ],
-        ),
+      body: screens[currentIndex],
+      bottomNavigationBar: CustomNavBar(
+        selectedIndex: currentIndex,
+        onItemTapped: (index) {
+          setState(() {
+            currentIndex = index;
+          });
+        },
       ),
     );
   }
