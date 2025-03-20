@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'screens/product_detail.dart';
+import 'screens/product_list.dart';
+import 'screens/test_products_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'screens/product_list.dart'; 
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -48,10 +49,25 @@ class HomeScreen extends StatelessWidget {
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => ProductDetail()),
+                  MaterialPageRoute(
+                    builder:
+                        (_) => const ProductDetail(
+                          productId: '60J3pS3bRnFjrksPd8hL',
+                        ),
+                  ),
                 );
               },
               child: const Text('Go to Product Detail'),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => TestProductsScreen()),
+                );
+              },
+              child: const Text('Test Firestore Products'),
             ),
           ],
         ),
