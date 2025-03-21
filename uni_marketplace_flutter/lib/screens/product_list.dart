@@ -255,6 +255,15 @@ class _ProductListState extends State<ProductList> {
   }
 
   Widget _buildProductList() {
+    if (_products.isEmpty) {
+      return Center(
+        child: Image.asset(
+          'assets/images/loading.gif',
+          height: MediaQuery.of(context).size.height * 0.2,
+        ),
+      );
+    }
+
     List<Map<String, dynamic>> filteredProducts =
         _products.where((product) {
           bool matchesCategory =
