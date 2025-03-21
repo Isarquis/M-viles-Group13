@@ -458,7 +458,9 @@ class _ProductDetailState extends State<ProductDetail> {
                               Column(
                                 children: [
                                   CircleAvatar(
-                                    backgroundImage: NetworkImage(user?['image'] ?? ''),
+                                    backgroundImage: NetworkImage(
+                                      user?['image'] ?? '',
+                                    ),
                                     radius: 30,
                                   ),
                                   SizedBox(height: 4),
