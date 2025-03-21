@@ -3,9 +3,9 @@ import 'package:uni_marketplace_flutter/services/firestore_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 Map<String, dynamic> fallbackProduct = {
-  'name': 'Probabilidad y estadística para ingeniería y ciencias',
-  'price': '35.000',
-  'description': 'In good condition',
+  'name': 'Cargando...',
+  'price': 'Cargando...',
+  'description': 'Cargando...',
   'imageUrl': 'assets/images/ProbabilidadYEstadistica.jpg',
 };
 
@@ -42,19 +42,20 @@ class _ProductDetailState extends State<ProductDetail> {
   }
 
   Future<void> loadProduct() async {
-    var products = await FirestoreService().getAllProducts();
-    if (products.isNotEmpty) {
+    var productData = await FirestoreService().getProductById(widget.productId);
+    if (productData != null) {
       setState(() {
         product = {
-          'name': products[0]['title'] ?? 'No Name',
-          'price': products[0]['price'].toString(),
-          'description': products[0]['description'] ?? 'No description',
-          'imageUrl': 'assets/images/ProbabilidadYEstadistica.jpg',
-          'baseBid': products[0]['baseBid'] ?? '50.000', // Added baseBid
+          'name': productData['title'] ?? 'No Name',
+          'price': productData['price'].toString(),
+          'description': productData['description'] ?? 'No description',
+          'imageUrl':
+              productData['image'] ??
+              'assets/images/ProbabilidadYEstadistica.jpg',
+          'baseBid': productData['baseBid'] ?? '50.000',
         };
       });
     }
-    print(product);
   }
 
   List<Map<String, dynamic>> bidWithUser = [];
@@ -89,7 +90,16 @@ class _ProductDetailState extends State<ProductDetail> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Center(child: Image.asset(product['imageUrl'])),
+              Center(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxHeight: MediaQuery.of(context).size.height * 0.4,
+                  ),
+                  child: product['imageUrl'].toString().startsWith('http')
+                      ? Image.network(product['imageUrl'], fit: BoxFit.contain)
+                      : Image.asset(product['imageUrl'], fit: BoxFit.contain),
+                ),
+              ),
               SizedBox(height: 16),
               Text(
                 product['name'],
@@ -100,7 +110,7 @@ class _ProductDetailState extends State<ProductDetail> {
                 child: Text(
                   '\$${product['price']}',
                   style: TextStyle(
-                    color: Colors.red,
+                    color: Color(0xFF2B7B35),
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
                   ),
@@ -189,7 +199,9 @@ class _ProductDetailState extends State<ProductDetail> {
                     SizedBox(height: 16),
                     Row(
                       children: [
-                        Image.asset(product['imageUrl'], width: 100),
+                        product['imageUrl'].toString().startsWith('http')
+                            ? Image.network(product['imageUrl'], width: 100)
+                            : Image.asset(product['imageUrl'], width: 100),
                         SizedBox(width: 16),
                         Expanded(
                           child: Column(
