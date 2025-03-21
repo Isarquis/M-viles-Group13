@@ -123,6 +123,7 @@ class FirestoreService {
         }
       }
     }
+    combined.sort((a, b) => (b['bid']['amount'] as int).compareTo(a['bid']['amount'] as int));
     return combined;
   }
 
