@@ -1,6 +1,84 @@
 import 'package:flutter/material.dart';
+import 'package:uni_marketplace_flutter/services/firestore_service.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
-class ProductDetail extends StatelessWidget {
+Map<String, dynamic> fallbackProduct = {
+  'name': 'Probabilidad y estadística para ingeniería y ciencias',
+  'price': '35.000',
+  'description': 'In good condition',
+  'imageUrl': 'assets/images/ProbabilidadYEstadistica.jpg',
+};
+
+List<Map<String, dynamic>> fallbackBids = [
+  {
+    'bidderName': 'Juan Herrera',
+    'time': '1 Day - 14/10/25',
+    'price': '5.000',
+    'contact': '+57 323 122 3511',
+    'email': 'j.herrera@uniandes.edu.co',
+  },
+];
+
+class ProductDetail extends StatefulWidget {
+  final String productId;
+  const ProductDetail({required this.productId, super.key});
+
+  @override
+  _ProductDetailState createState() => _ProductDetailState();
+}
+
+class _ProductDetailState extends State<ProductDetail> {
+  bool showBidders = false;
+  bool showPlaceBid = false;
+  List<Map<String, dynamic>> users = [];
+  Map<String, dynamic> product = fallbackProduct;
+  List<Map<String, dynamic>> bids = [];
+
+  @override
+  void initState() {
+    super.initState();
+    loadProduct();
+    loadBids();
+  }
+
+  Future<void> loadProduct() async {
+    var products = await FirestoreService().getAllProducts();
+    if (products.isNotEmpty) {
+      setState(() {
+        product = {
+          'name': products[0]['title'] ?? 'No Name',
+          'price': products[0]['price'].toString(),
+          'description': products[0]['description'] ?? 'No description',
+          'imageUrl': 'assets/images/ProbabilidadYEstadistica.jpg',
+          'baseBid': products[0]['baseBid'] ?? '50.000', // Added baseBid
+        };
+      });
+    }
+    print(product);
+  }
+
+  List<Map<String, dynamic>> bidWithUser = [];
+
+  Future<void> loadBids() async {
+    var combined = await FirestoreService().getBidsWithUsersByProduct(
+      widget.productId,
+    );
+
+    for (var item in combined) {
+      var bid = item['bid'];
+      if (bid['createdAt'] is Timestamp) {
+        var ts = bid['createdAt'] as Timestamp;
+        var date = ts.toDate();
+        bid['createdAt'] =
+            '${date.day}/${date.month}/${date.year} ${date.hour}:${date.minute}';
+      }
+    }
+
+    setState(() {
+      bidWithUser = combined;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -11,20 +89,16 @@ class ProductDetail extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Center(
-                child: Image.asset(
-                  'assets/images/ProbabilidadYEstadistica.jpg',
-                ),
-              ),
+              Center(child: Image.asset(product['imageUrl'])),
               SizedBox(height: 16),
               Text(
-                'Probabilidad y estadística para ingeniería y ciencias',
+                product['name'],
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
               ),
               SizedBox(height: 8),
               Center(
                 child: Text(
-                  '\$35.000',
+                  '\$${product['price']}',
                   style: TextStyle(
                     color: Colors.red,
                     fontWeight: FontWeight.bold,
@@ -38,9 +112,7 @@ class ProductDetail extends StatelessWidget {
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
               SizedBox(height: 8),
-              Text(
-                'Probabilidad y Estadística para Ingeniería y Ciencias ofrece un enfoque moderno y aplicado a las matemáticas, adoptado en todo el mundo.',
-              ),
+              Text(product['description']),
               SizedBox(height: 16),
               Row(
                 children: [
@@ -74,7 +146,12 @@ class ProductDetail extends StatelessWidget {
               SizedBox(height: 8),
               Center(
                 child: ElevatedButton(
-                  onPressed: () {},
+                  onPressed: () {
+                    setState(() {
+                      showPlaceBid = true;
+                      showBidders = false;
+                    });
+                  },
                   child: Text(
                     'Place a Bid',
                     style: TextStyle(color: Colors.black),
@@ -85,31 +162,234 @@ class ProductDetail extends StatelessWidget {
                 ),
               ),
               SizedBox(height: 16),
-              Divider(),
-              ListTile(
-                title: Text(
-                  'Similar items',
-                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+              if (showPlaceBid) ...[
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        IconButton(
+                          icon: Icon(Icons.close),
+                          onPressed: () {
+                            setState(() {
+                              showPlaceBid = false;
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                    Text(
+                      'Make a Bid',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 20,
+                      ),
+                    ),
+                    SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Image.asset(product['imageUrl'], width: 100),
+                        SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              RichText(
+                                text: TextSpan(
+                                  style: TextStyle(color: Colors.black),
+                                  children: [
+                                    TextSpan(
+                                      text: 'Minimum bidding price:',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    TextSpan(
+                                      text: ' ${product['baseBid'] ?? ''} COP',
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              SizedBox(height: 8),
+                              Text(
+                                'Set your Price:',
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                              SizedBox(height: 8),
+                              TextField(
+                                decoration: InputDecoration(
+                                  contentPadding: EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 8,
+                                  ),
+                                  hintText: 'ej. 35.000',
+                                  hintStyle: TextStyle(color: Colors.blueGrey),
+                                  filled: true,
+                                  fillColor: Color(0xFFE1E5F2),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                    borderSide: BorderSide.none,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 24),
+                    ElevatedButton(
+                      onPressed: () {},
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 12,
+                        ),
+                        child: Text(
+                          'Make Bid',
+                          style: TextStyle(color: Colors.white),
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Color(0xFF1F7A8C),
+                      ),
+                    ),
+                  ],
                 ),
-                subtitle: Text(
-                  'See more',
-                  style: TextStyle(fontSize: 12, color: Colors.blueGrey),
+              ] else if (showBidders) ...[
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Bidders',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.close),
+                      onPressed: () {
+                        setState(() {
+                          showBidders = false;
+                        });
+                      },
+                    ),
+                  ],
                 ),
-                trailing: Icon(Icons.arrow_forward),
-                onTap: () {},
-              ),
-              ListTile(
-                title: Text(
-                  'Bidding for this item',
-                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                SizedBox(height: 10),
+                ListView.builder(
+                  shrinkWrap: true,
+                  physics: NeverScrollableScrollPhysics(),
+                  itemCount: bidWithUser.length,
+                  itemBuilder: (context, index) {
+                    final bid = bidWithUser[index]['bid'];
+                    final user = bidWithUser[index]['user'];
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 10.0),
+                      child: Row(
+                        children: [
+                          Column(
+                            children: [
+                              CircleAvatar(
+                                backgroundImage: AssetImage(
+                                  'assets/images/bidder${index + 1}.jpg',
+                                ),
+                                radius: 30,
+                              ),
+                              SizedBox(height: 4),
+                              Text(
+                                user != null
+                                    ? user['name'] ?? 'Unknown'
+                                    : 'User not found',
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                            ],
+                          ),
+                          SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                RichText(
+                                  text: TextSpan(
+                                    style: TextStyle(color: Colors.black),
+                                    children: [
+                                      TextSpan(
+                                        text: 'Time: ',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      TextSpan(
+                                        text: '${bid['createdAt'] ?? ''}',
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                RichText(
+                                  text: TextSpan(
+                                    style: TextStyle(color: Colors.black),
+                                    children: [
+                                      TextSpan(
+                                        text: 'Amount: ',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      TextSpan(
+                                        text: '${bid['amount'] ?? ''} COP',
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Text('+57 ${user?['phone'] ?? ''}'),
+                                Text(
+                                  user?['email'] ?? '',
+                                  style: TextStyle(
+                                    decoration: TextDecoration.underline,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
                 ),
-                subtitle: Text(
-                  'Starts at \$20',
-                  style: TextStyle(fontSize: 12, color: Colors.blueGrey),
+              ] else ...[
+                Divider(),
+                ListTile(
+                  title: Text(
+                    'Similar items',
+                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                  ),
+                  subtitle: Text(
+                    'See more',
+                    style: TextStyle(fontSize: 12, color: Colors.blueGrey),
+                  ),
+                  trailing: Icon(Icons.arrow_forward),
+                  onTap: () {},
                 ),
-                trailing: Icon(Icons.arrow_forward),
-                onTap: () {},
-              ),
+                ListTile(
+                  title: Text(
+                    'Bidding for this item',
+                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                  ),
+                  subtitle: Text(
+                    'Starts at \$20',
+                    style: TextStyle(fontSize: 12, color: Colors.blueGrey),
+                  ),
+                  trailing: Icon(Icons.arrow_forward),
+                  onTap: () {
+                    setState(() {
+                      showBidders = true;
+                    });
+                  },
+                ),
+              ],
             ],
           ),
         ),
