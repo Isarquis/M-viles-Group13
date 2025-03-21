@@ -27,12 +27,22 @@ class FirestoreService {
 
   Future<List<Map<String, dynamic>>> getAllProducts() async {
     var snapshot = await _db.collection('products').get();
-    return snapshot.docs.map((doc) => doc.data() as Map<String, dynamic>).toList();
+    return snapshot.docs.map((doc) {
+      var data = doc.data() as Map<String, dynamic>;
+      data['id'] = doc.id;
+      return data;
+    }).toList();
   }
 
   Future<List<Map<String, dynamic>>> getProductsByType(String type) async {
-    var snapshot = await _db.collection('products').where('type', arrayContains: type).get();
-    return snapshot.docs.map((doc) => doc.data() as Map<String, dynamic>).toList();
+    var snapshot =
+        await _db
+            .collection('products')
+            .where('type', arrayContains: type)
+            .get();
+    return snapshot.docs
+        .map((doc) => doc.data() as Map<String, dynamic>)
+        .toList();
   }
 
   Future<void> updateProductStatus(String productId, String status) async {
@@ -45,8 +55,14 @@ class FirestoreService {
   }
 
   Future<List<Map<String, dynamic>>> getBidsByProduct(String productId) async {
-    var snapshot = await _db.collection('bids').where('productId', isEqualTo: productId).get();
-    return snapshot.docs.map((doc) => doc.data() as Map<String, dynamic>).toList();
+    var snapshot =
+        await _db
+            .collection('bids')
+            .where('productId', isEqualTo: productId)
+            .get();
+    return snapshot.docs
+        .map((doc) => doc.data() as Map<String, dynamic>)
+        .toList();
   }
 
   // TRANSACTIONS
@@ -54,12 +70,60 @@ class FirestoreService {
     await _db.collection('transactions').add(transactionData);
   }
 
-  Future<List<Map<String, dynamic>>> getTransactionsByUser(String userId) async {
-    var snapshot = await _db
-        .collection('transactions')
-        .where('buyerId', isEqualTo: userId)
-        .get();
-    return snapshot.docs.map((doc) => doc.data() as Map<String, dynamic>).toList();
+  Future<List<Map<String, dynamic>>> getTransactionsByUser(
+    String userId,
+  ) async {
+    var snapshot =
+        await _db
+            .collection('transactions')
+            .where('buyerId', isEqualTo: userId)
+            .get();
+    return snapshot.docs
+        .map((doc) => doc.data() as Map<String, dynamic>)
+        .toList();
+  }
+  Future<Map<String, dynamic>?> getProductById(String id) async {
+  var doc = await FirebaseFirestore.instance.collection('products').doc(id).get();
+  return doc.exists ? doc.data() : null;
+}
+
+  Future<List<Map<String, dynamic>>> getBiddersFromBids(
+    List<Map<String, dynamic>> bids,
+  ) async {
+    List<Map<String, dynamic>> users = [];
+    for (var bid in bids) {
+      var bidderId = bid['bidder'];
+      if (bidderId != null) {
+        var userData = await getUser(bidderId);
+        if (userData != null) {
+          users.add(userData);
+        }
+      }
+    }
+    return users;
+  }
+
+  Future<List<Map<String, dynamic>>> getBidsWithUsersByProduct(
+    String productId,
+  ) async {
+    var snapshot =
+        await _db
+            .collection('bids')
+            .where('productId', isEqualTo: productId)
+            .get();
+    List<Map<String, dynamic>> combined = [];
+    
+    for (var doc in snapshot.docs) {
+      var bid = doc.data();
+      var bidderId = bid['bidder'];
+      if (bidderId != null) {
+        var userData = await getUser(bidderId);
+        if (userData != null) {
+          combined.add({'bid': bid, 'user': userData});
+        }
+      }
+    }
+    return combined;
   }
 
   Future<String> uploadImage(String folder) async {
