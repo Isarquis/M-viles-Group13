@@ -150,9 +150,9 @@ class FirestoreService {
   Future<void> logResponseTime(DateTime requestedAt, DateTime receivedAt, DateTime showedAt) async {
     await _db.collection('logs').add({
       'type': 'response_time',
-      'requested_at': Timestamp.fromDate(requestedAt),
-      'received_at': Timestamp.fromDate(receivedAt),
-      'showed_at': Timestamp.fromDate(showedAt),
+      'requested_at': requestedAt.millisecondsSinceEpoch,
+      'received_at': receivedAt.millisecondsSinceEpoch,
+      'showed_at': showedAt.millisecondsSinceEpoch,
     });
   }
 }
