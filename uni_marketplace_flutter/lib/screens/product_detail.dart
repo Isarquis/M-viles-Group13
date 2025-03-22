@@ -36,10 +36,12 @@ class _ProductDetailState extends State<ProductDetail> {
   TextEditingController bidController = TextEditingController();
   String? bidError;
   int? highestBid;
+  final FirestoreService _firestoreService = FirestoreService();
 
   @override
   void initState() {
     super.initState();
+    _firestoreService.logFeatureUsage('screen_product_detail');
     loadProduct();
     loadBids();
   }
@@ -165,6 +167,7 @@ class _ProductDetailState extends State<ProductDetail> {
   }
 
   void handleAction(String type) {
+    _firestoreService.logFeatureUsage('button_$type');
     if (type == 'Bidding') {
       setState(() {
         showPlaceBid = true;
@@ -555,6 +558,7 @@ class _ProductDetailState extends State<ProductDetail> {
                     ),
                     trailing: Icon(Icons.arrow_forward),
                     onTap: () {
+                      _firestoreService.logFeatureUsage('button_view_bidders');
                       setState(() {
                         showBidders = true;
                       });
