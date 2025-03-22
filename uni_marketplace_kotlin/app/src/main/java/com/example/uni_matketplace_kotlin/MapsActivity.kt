@@ -33,7 +33,12 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMyLoca
 
     private lateinit var mMap: GoogleMap
     private lateinit var binding: ActivityMapsBinding
-
+    val lugaresCercanos = listOf(
+        LatLng(4.60971, -74.08175), // Bogotá
+        LatLng(4.60312, -74.06725), // Lugar cercano 1
+        LatLng(4.61022, -74.08533), // Lugar cercano 2
+        LatLng(4.61852, -74.06575)  // Lugar cercano 3
+    )
     companion object{
         const val REQUEST_CODE_LOCATION=0
     }
@@ -51,15 +56,6 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMyLoca
 
     }
 
-    /**
-     * Manipulates the map once available.
-     * This callback is triggered when the map is ready to be used.
-     * This is where we can add markers or lines, add listeners or move the camera. In this case,
-     * we just add a marker near Sydney, Australia.
-     * If Google Play services is not installed on the device, the user will be prompted to install
-     * it inside the SupportMapFragment. This method will only be triggered once the user has
-     * installed Google Play services and returned to the app.
-     */
     override fun onMapReady(googleMap: GoogleMap) {
         mMap = googleMap
 
@@ -69,8 +65,42 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMyLoca
         mMap.setOnMyLocationButtonClickListener(this)
         mMap.setOnMyLocationClickListener (this)
         enableMyLocation()
+        for (lugar in lugaresCercanos) {
+            mMap.addMarker(
+                MarkerOptions()
+                    .position(lugar)
+                    .title("Lugar cercano")
+            )
+        }
 
+        // Centrar la cámara en tu ubicación
+        moverCamaraALaUbicacion { posicionActual ->
+            for (lugar in lugaresCercanos) {
+                val distancia = calcularDistancia(posicionActual, lugar)
+                mMap.addMarker(
+                    MarkerOptions()
+                        .position(lugar)
+                        .title("Lugar cercano")
+                        .snippet("Distancia: ${distancia.toInt()} metros")
+                )
+            }
+        }
     }
+
+    
+    private fun moverCamaraALaUbicacion(callback: (LatLng) -> Unit) {
+        if (isPermissionsGranted()) {
+            val fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
+            fusedLocationClient.lastLocation.addOnSuccessListener { location: Location? ->
+                location?.let {
+                    val posicion = LatLng(it.latitude, it.longitude)
+                    mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(posicion, 14.0f))
+                    callback(posicion) // Pasar la posición al callback
+                }
+            }
+        }
+    }
+
     private fun createMarker(){
         val bogota = LatLng(4.60971, -74.08175)
         mMap.addMarker(MarkerOptions().position(bogota).title("Marker in Bogotá"))
@@ -146,4 +176,14 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMyLoca
     override fun onMyLocationClick(p0: Location) {
         Toast.makeText(this, "Estás en ${p0.latitude}$, ${p0.longitude}\$ ", Toast.LENGTH_SHORT).show()
     }
+    private fun calcularDistancia(ubicacion1: LatLng, ubicacion2: LatLng): Float {
+        val resultados = FloatArray(1)
+        Location.distanceBetween(
+            ubicacion1.latitude, ubicacion1.longitude,
+            ubicacion2.latitude, ubicacion2.longitude,
+            resultados
+        )
+        return resultados[0] // Distancia en metros
+    }
+
 }
