@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'screens/product_detail.dart';
 import 'screens/product_list.dart';
 import 'screens/test_products_screen.dart';
+import 'screens/post_product_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'widgets/custom_navbar.dart';
@@ -39,7 +40,7 @@ class _HomeScreenState extends State<HomeScreen> {
     Center(child: Text('Home')), 
     ProductList(),
     ProductDetail(productId: '60J3pS3bRnFjrksPd8hL'),
-    TestProductsScreen(),
+    PostProductScreen(),
     Center(child: Text('Map')),
     Center(child: Text('Profile')),
   ];

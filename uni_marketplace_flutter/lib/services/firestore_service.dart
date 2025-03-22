@@ -19,11 +19,18 @@ class FirestoreService {
   }
 
   // PRODUCTS
+
   Future<void> addProduct(Map<String, dynamic> data) async {
-    String imageUrl = await uploadImage('products');
-    data['imageUrl'] = imageUrl;
-    await _db.collection('products').add(data);
+    await FirebaseFirestore.instance.collection('products').add(data);
   }
+
+  Future<String> uploadImageWithFile(File file, String folder) async {
+  String fileName = '${DateTime.now().millisecondsSinceEpoch}.jpg';
+  var ref = FirebaseStorage.instance.ref().child('$folder/$fileName');
+  UploadTask uploadTask = ref.putFile(file);
+  TaskSnapshot snapshot = await uploadTask;
+  return await snapshot.ref.getDownloadURL();
+}
 
   Future<List<Map<String, dynamic>>> getAllProducts() async {
     var snapshot = await _db.collection('products').get();
