@@ -12,16 +12,26 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Uni_matketplace_kotlin"
         tools:targetApi="31" >
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
             android:label="@string/title_activity_main">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Declaración de LoginActivity -->
+        <activity
+            android:name=".ui.auth.LoginActivity"
+            android:exported="true" />
+
+        <!-- Declaración de RegisterActivity -->
+        <activity
+            android:name=".ui.auth.RegisterActivity"
+            android:exported="true" />
 
     </application>
 
