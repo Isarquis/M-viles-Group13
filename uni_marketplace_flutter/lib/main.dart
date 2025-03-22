@@ -5,6 +5,7 @@ import 'screens/test_products_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'widgets/custom_navbar.dart';
+import '../services/firestore_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -34,6 +35,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int currentIndex = 0;
+  final FirestoreService _firestoreService = FirestoreService();
 
   final List<Widget> screens = [
     Center(child: Text('Home')), 
@@ -54,6 +56,7 @@ class _HomeScreenState extends State<HomeScreen> {
           setState(() {
             currentIndex = index;
           });
+          _firestoreService.logFeatureUsage('screen_$index');
         },
       ),
     );
