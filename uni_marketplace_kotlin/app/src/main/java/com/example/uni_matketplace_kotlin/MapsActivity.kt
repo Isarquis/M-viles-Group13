@@ -13,6 +13,8 @@ import android.view.View
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import com.bumptech.glide.Glide
+import com.example.uni_matketplace_kotlin.data.model.User
 
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
@@ -54,6 +56,14 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMyLoca
             .findFragmentById(R.id.map) as SupportMapFragment
         mapFragment.getMapAsync(this)
 
+        // Manejar botón de retroceso
+        binding.backButton.setOnClickListener {
+            onBackPressedDispatcher.onBackPressed()
+        }
+
+        // Cargar datos del usuario
+        loadUserData()
+
     }
 
     override fun onMapReady(googleMap: GoogleMap) {
@@ -87,7 +97,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMyLoca
         }
     }
 
-    
+
     private fun moverCamaraALaUbicacion(callback: (LatLng) -> Unit) {
         if (isPermissionsGranted()) {
             val fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
@@ -99,6 +109,22 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMyLoca
                 }
             }
         }
+    }
+    private fun loadUserData() {
+        val sampleUser = User(
+            name = "Juan Herrera",
+            distance = 50,
+            price = "50.000 COP",
+            contact = "323 122 3511",
+            imageResId = R.drawable.user)
+
+
+        binding.userName.text = sampleUser.name
+        binding.userDistance.text = "Distance to you: ${sampleUser.distance}m"
+        binding.userPrice.text = "Price: ${sampleUser.price}"
+        binding.userContact.text = "Contact: ${sampleUser.contact}"
+        binding.userImage.setImageResource(sampleUser.imageResId)
+
     }
 
     private fun createMarker(){
