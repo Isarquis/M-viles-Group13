@@ -22,4 +22,11 @@
         android:name="com.example.uni_matketplace_kotlin.ui.notifications.NotificationsFragment"
         android:label="@string/title_notifications"
         tools:layout="@layout/fragment_notifications" />
+
+    <!-- Agregar el fragment del mapa -->
+    <fragment
+        android:id="@+id/navigation_map"
+        android:name="com.example.uni_matketplace_kotlin.ui.map.MapsFragment"
+        android:label="Mapa"
+        tools:layout="@layout/fragment_maps" />
 </navigation>

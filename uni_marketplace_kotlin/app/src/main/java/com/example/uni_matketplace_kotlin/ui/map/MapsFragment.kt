@@ -1,79 +1,68 @@
-package com.example.uni_matketplace_kotlin
+package com.example.uni_matketplace_kotlin.ui.map
 
 import android.Manifest
-import android.content.ContentProviderClient
-import android.content.Intent
 import android.content.pm.PackageManager
 import android.location.Location
-import android.os.Build
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.os.Looper
+import android.view.LayoutInflater
 import android.view.View
+import android.view.ViewGroup
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.fragment.app.Fragment
 import com.bumptech.glide.Glide
+import com.example.uni_matketplace_kotlin.R
 import com.example.uni_matketplace_kotlin.data.model.User
-
+import com.example.uni_matketplace_kotlin.databinding.FragmentMapsBinding
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
-import com.example.uni_matketplace_kotlin.databinding.ActivityMapsBinding
-import com.google.android.gms.location.FusedLocationProviderClient
-import com.google.android.gms.location.Granularity
-import com.google.android.gms.location.LocationCallback
-import com.google.android.gms.location.LocationRequest
-import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
-import com.google.android.gms.location.Priority
 
-class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMyLocationButtonClickListener, GoogleMap.OnMyLocationClickListener {
+class MapsFragment : Fragment(R.layout.fragment_maps), OnMapReadyCallback, GoogleMap.OnMyLocationButtonClickListener,
+    GoogleMap.OnMyLocationClickListener {
 
+    private var _binding: FragmentMapsBinding? = null
+    private val binding get() = _binding!!
     private lateinit var mMap: GoogleMap
-    private lateinit var binding: ActivityMapsBinding
-    val lugaresCercanos = listOf(
+
+    private val lugaresCercanos = listOf(
         LatLng(4.60971, -74.08175), // Bogotá
         LatLng(4.60312, -74.06725), // Lugar cercano 1
         LatLng(4.61022, -74.08533), // Lugar cercano 2
         LatLng(4.61852, -74.06575)  // Lugar cercano 3
     )
-    companion object{
-        const val REQUEST_CODE_LOCATION=0
+
+    companion object {
+        const val REQUEST_CODE_LOCATION = 0
     }
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
+    ): View {
+        _binding = FragmentMapsBinding.inflate(inflater, container, false)
+        return binding.root
+    }
 
-        binding = ActivityMapsBinding.inflate(layoutInflater)
-        setContentView(binding.root)
-
-        // Obtain the SupportMapFragment and get notified when the map is ready to be used.
-        val mapFragment = supportFragmentManager
-            .findFragmentById(R.id.map) as SupportMapFragment
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        val mapFragment = childFragmentManager.findFragmentById(R.id.map) as SupportMapFragment
         mapFragment.getMapAsync(this)
-
-        // Manejar botón de retroceso
         binding.backButton.setOnClickListener {
-            onBackPressedDispatcher.onBackPressed()
+            requireActivity().onBackPressedDispatcher.onBackPressed()
         }
-
-        // Cargar datos del usuario
         loadUserData()
-
     }
 
     override fun onMapReady(googleMap: GoogleMap) {
         mMap = googleMap
-
-        //Marker
         createMarker()
-
         mMap.setOnMyLocationButtonClickListener(this)
-        mMap.setOnMyLocationClickListener (this)
+        mMap.setOnMyLocationClickListener(this)
         enableMyLocation()
         for (lugar in lugaresCercanos) {
             mMap.addMarker(
@@ -82,8 +71,6 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMyLoca
                     .title("Lugar cercano")
             )
         }
-
-        // Centrar la cámara en tu ubicación
         moverCamaraALaUbicacion { posicionActual ->
             for (lugar in lugaresCercanos) {
                 val distancia = calcularDistancia(posicionActual, lugar)
@@ -97,75 +84,64 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMyLoca
         }
     }
 
-
     private fun moverCamaraALaUbicacion(callback: (LatLng) -> Unit) {
         if (isPermissionsGranted()) {
-            val fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
+            val fusedLocationClient =
+                LocationServices.getFusedLocationProviderClient(requireContext())
             fusedLocationClient.lastLocation.addOnSuccessListener { location: Location? ->
                 location?.let {
                     val posicion = LatLng(it.latitude, it.longitude)
                     mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(posicion, 14.0f))
-                    callback(posicion) // Pasar la posición al callback
+                    callback(posicion)
                 }
             }
         }
     }
+
     private fun loadUserData() {
         val sampleUser = User(
             name = "Juan Herrera",
             distance = 50,
             price = "50.000 COP",
             contact = "323 122 3511",
-            imageResId = R.drawable.user)
-
-
+            imageResId = R.drawable.user
+        )
         binding.userName.text = sampleUser.name
         binding.userDistance.text = "Distance to you: ${sampleUser.distance}m"
         binding.userPrice.text = "Price: ${sampleUser.price}"
         binding.userContact.text = "Contact: ${sampleUser.contact}"
         binding.userImage.setImageResource(sampleUser.imageResId)
-
     }
 
-    private fun createMarker(){
+    private fun createMarker() {
         val bogota = LatLng(4.60971, -74.08175)
         mMap.addMarker(MarkerOptions().position(bogota).title("Marker in Bogotá"))
-        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(bogota, 12.0f),
-            4000, null)
-    }
-
-
-    fun regresarHome(view: View){
-        val intent= Intent(this, MainActivity::class.java).apply{ }
-        startActivity(intent)
+        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(bogota, 12.0f), 4000, null)
     }
 
     private fun isPermissionsGranted(): Boolean {
-        return (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
-                || ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED)
+        return (ContextCompat.checkSelfPermission(
+            requireContext(),
+            Manifest.permission.ACCESS_FINE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+                || ContextCompat.checkSelfPermission(
+            requireContext(),
+            Manifest.permission.ACCESS_COARSE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED)
     }
-
 
     private fun enableMyLocation() {
         if (!::mMap.isInitialized) return
         if (isPermissionsGranted()) {
             mMap.isMyLocationEnabled = true
-            mMap.uiSettings.isMyLocationButtonEnabled = true // Habilitar botón de ubicación
+            mMap.uiSettings.isMyLocationButtonEnabled = true
         } else {
             requestLocationPermission()
         }
     }
 
-
     private fun requestLocationPermission() {
-        if (ActivityCompat.shouldShowRequestPermissionRationale(this,
-                Manifest.permission.ACCESS_FINE_LOCATION)) {
-            Toast.makeText(this, "Ve a ajustes y acepta los permisos", Toast.LENGTH_SHORT).show()
-        } else {
-            ActivityCompat.requestPermissions(this,
-                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
-                REQUEST_CODE_LOCATION)
-        }
+        requestPermissions(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), REQUEST_CODE_LOCATION)
     }
 
     override fun onRequestPermissionsResult(
@@ -174,34 +150,32 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMyLoca
         grantResults: IntArray
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-
         if (requestCode == REQUEST_CODE_LOCATION) {
             if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                enableMyLocation() // Llamar nuevamente para activar la ubicación
+                enableMyLocation()
             } else {
-                Toast.makeText(this, "Ve a ajustes y acepta los permisos", Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    requireContext(),
+                    "Ve a ajustes y acepta los permisos",
+                    Toast.LENGTH_SHORT
+                ).show()
             }
         }
     }
 
-
-    override fun onResumeFragments() {
-        super.onResumeFragments()
-        if(!::mMap.isInitialized) return
-        if(!isPermissionsGranted()){
-            mMap.isMyLocationEnabled=false
-            Toast.makeText(this, "Ve a ajustes y acepta los permisos", Toast.LENGTH_SHORT).show()
-
-        }
-    }
-
     override fun onMyLocationButtonClick(): Boolean {
-        Toast.makeText(this, "Botón Pulsado", Toast.LENGTH_SHORT).show()
-        return false    }
+        Toast.makeText(requireContext(), "Botón Pulsado", Toast.LENGTH_SHORT).show()
+        return false
+    }
 
     override fun onMyLocationClick(p0: Location) {
-        Toast.makeText(this, "Estás en ${p0.latitude}$, ${p0.longitude}\$ ", Toast.LENGTH_SHORT).show()
+        Toast.makeText(
+            requireContext(),
+            "Estás en ${p0.latitude}, ${p0.longitude}",
+            Toast.LENGTH_SHORT
+        ).show()
     }
+
     private fun calcularDistancia(ubicacion1: LatLng, ubicacion2: LatLng): Float {
         val resultados = FloatArray(1)
         Location.distanceBetween(
@@ -209,7 +183,11 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMyLoca
             ubicacion2.latitude, ubicacion2.longitude,
             resultados
         )
-        return resultados[0] // Distancia en metros
+        return resultados[0]
     }
 
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
+    }
 }
