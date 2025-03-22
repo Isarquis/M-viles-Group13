@@ -19,23 +19,27 @@
         <androidx.appcompat.widget.AppCompatButton
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:backgroundTint="@color/button_color"
             android:textSize="12sp"
             android:text="All"/>
 
         <androidx.appcompat.widget.AppCompatButton
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:backgroundTint="@color/button_color"
             android:textSize="12sp"
             android:text="Business"/>
 
         <androidx.appcompat.widget.AppCompatButton
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:backgroundTint="@color/button_color"
             android:textSize="12sp"
             android:text="Economics"/>
 
         <androidx.appcompat.widget.AppCompatButton
             android:layout_width="wrap_content"
+            android:backgroundTint="@color/button_color"
             android:layout_height="wrap_content"
             android:textSize="12sp"
             android:text="Psychology"/>
@@ -101,7 +105,8 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="16dp"
         android:layout_marginBottom="99dp"
-        android:text="Act 2"
+        android:backgroundTint="@color/button_color"
+        android:text="Login"
         android:textColor="@color/black"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
@@ -114,6 +119,7 @@
         android:layout_height="wrap_content"
         android:layout_marginEnd="16dp"
         android:layout_marginBottom="99dp"
+        android:backgroundTint="@color/button_color"
         android:text="Act 3"
         android:textColor="@color/black"
         app:layout_constraintBottom_toBottomOf="parent"
