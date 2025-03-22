@@ -17,6 +17,8 @@ async def index():
     for doc in docs:
         data = doc.to_dict()
         feature = data.get('feature')
+        if feature.startswith('search'):
+            feature = 'search_*'
         counts[feature] = counts.get(feature, 0) + 1
 
     labels = list(counts.keys())
