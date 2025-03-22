@@ -19,6 +19,8 @@ class SearchBar extends StatefulWidget {
 }
 
 class _SearchBarState extends State<SearchBar> {
+  final FirestoreService _firestoreService = FirestoreService();
+
   @override
   Widget build(BuildContext context) {
     List<Map<String, dynamic>> suggestions =
@@ -62,6 +64,7 @@ class _SearchBarState extends State<SearchBar> {
                   if (widget.controller.text.isEmpty) {
                     widget.onSearchResult([]);
                   } else if (suggestions.isNotEmpty) {
+                    _firestoreService.logFeatureUsage('search_${widget.controller.text}');
                     widget.onSearchResult([suggestions.first]);
                   }
                 },
@@ -129,6 +132,7 @@ class _ProductListState extends State<ProductList> {
   @override
   void initState() {
     super.initState();
+    _firestoreService.logFeatureUsage('screen_product_list');
     _loadProducts();
   }
 
