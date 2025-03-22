@@ -20,3 +20,11 @@
 **/.vscode/
 **/*.log
 **/node_modules/
+
+# FastAPI
+fastapi-logs/venv/
+fastapi-logs/__pycache__/
+fastapi-logs/.env
+fastapi-logs/*.pyc
+fastapi-logs/.pytest_cache/
+fastapi-logs/firebase-key.json
