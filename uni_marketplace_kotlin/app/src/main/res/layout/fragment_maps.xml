@@ -8,7 +8,8 @@
     android:background="@color/white"
     android:orientation="vertical"
     android:fitsSystemWindows="true"
-    tools:context=".MapsFragment">
+    tools:context="com.example.uni_matketplace_kotlin.ui.map.MapsFragment">
+
 
     <!-- Encabezado con título y botón de retroceso -->
     <RelativeLayout
