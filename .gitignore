@@ -20,3 +20,19 @@
 **/.vscode/
 **/*.log
 **/node_modules/
+
+# FastAPI / Python
+venv/
+.env
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.sqlite3
+*.db
+*.log
+*.pid
+*.json
+
+# FastAPI logs
+fastapi-logs/
