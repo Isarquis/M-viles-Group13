@@ -1,14 +1,12 @@
 package com.example.uni_matketplace_kotlin.viewmodel
 
 import android.location.Location
-import android.util.Log
 import androidx.lifecycle.*
 import com.example.uni_matketplace_kotlin.data.model.Product
 import com.example.uni_matketplace_kotlin.data.model.User
 import com.example.uni_matketplace_kotlin.data.repositories.ProductRepository
 import com.example.uni_matketplace_kotlin.data.repositories.UserRepository
 import com.google.android.gms.maps.model.LatLng
-import com.google.firebase.firestore.GeoPoint
 import kotlinx.coroutines.launch
 
 class MapsViewModel(
@@ -22,23 +20,31 @@ class MapsViewModel(
     private val _closestUser = MutableLiveData<User?>()
     val closestUser: LiveData<User?> = _closestUser
 
-    fun loadClosestProduct(currentLocation: LatLng, maxDistance: Float = 400f) {
-        Log.d("MapsViewModel", "Loading closest product...")
+    private val _nearbyUsers = MutableLiveData<List<User>>()
+    val nearbyUsers: LiveData<List<User>> = _nearbyUsers
+
+    private val _distanceToClosestUser = MutableLiveData<Float>()
+    val distanceToClosestUser: LiveData<Float> = _distanceToClosestUser
+
+
+    fun loadClosestProduct(currentLocation: LatLng, maxDistance: Float = 2000f) {
         viewModelScope.launch {
             val users = userRepository.getAllUsers()
 
             val closestUserWithDistance = users
+                .filter { it.location?.latitude != null && it.location.longitude != null }
                 .mapNotNull { user ->
-                    val userLatLng = user.location?.let { LatLng(it.latitude, it.longitude) }
-                    if (userLatLng != null) {
-                        val distance = calculateDistance(currentLocation, userLatLng)
-                        if (distance <= maxDistance) Pair(user, distance) else null
-                    } else null
+                    val distance = calculateDistance(currentLocation, LatLng(user.location.latitude!!, user.location.longitude!!))
+                    if (distance <= maxDistance) user to distance else null
                 }
                 .minByOrNull { it.second }
 
             val closestUser = closestUserWithDistance?.first
+            val distance = closestUserWithDistance?.second ?: 0f
+
             _closestUser.value = closestUser
+            _distanceToClosestUser.value = distance
+
 
             if (closestUser != null) {
                 val products = productRepository.getProductsByUserId(closestUser.id)
@@ -49,13 +55,20 @@ class MapsViewModel(
         }
     }
 
+    fun loadNearbyUsers(currentLocation: LatLng, maxDistance: Float = 2000f) {
+        viewModelScope.launch {
+            val users = userRepository.getAllUsers()
+            val nearby = users.filter { user ->
+                user.location != null &&
+                        calculateDistance(currentLocation, LatLng(user.location.latitude!!, user.location.longitude!!)) <= maxDistance
+            }
+            _nearbyUsers.postValue(nearby)
+        }
+    }
+
     private fun calculateDistance(start: LatLng, end: LatLng): Float {
         val results = FloatArray(1)
-        Location.distanceBetween(
-            start.latitude, start.longitude,
-            end.latitude, end.longitude,
-            results
-        )
+        Location.distanceBetween(start.latitude, start.longitude, end.latitude, end.longitude, results)
         return results[0]
     }
 }

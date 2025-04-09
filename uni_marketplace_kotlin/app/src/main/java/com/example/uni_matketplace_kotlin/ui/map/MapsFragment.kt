@@ -24,8 +24,6 @@ import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
 
-typealias GeoPoint = com.google.firebase.firestore.GeoPoint
-
 class MapsFragment : Fragment(), OnMapReadyCallback, GoogleMap.OnMyLocationButtonClickListener, GoogleMap.OnMyLocationClickListener {
 
     private var _binding: FragmentMapsBinding? = null
@@ -39,7 +37,7 @@ class MapsFragment : Fragment(), OnMapReadyCallback, GoogleMap.OnMyLocationButto
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
-    ): View? {
+    ): View {
         _binding = FragmentMapsBinding.inflate(inflater, container, false)
         return binding.root
     }
@@ -51,26 +49,43 @@ class MapsFragment : Fragment(), OnMapReadyCallback, GoogleMap.OnMyLocationButto
 
         mapsViewModel.closestUser.observe(viewLifecycleOwner) { user ->
             binding.userName.text = user?.name ?: "Nombre desconocido"
-            binding.userContact.text = "Contact: ${user?.phone ?: "Desconocido"}"
-        }
-
-        mapsViewModel.closestProduct.observe(viewLifecycleOwner) { product ->
-            binding.userPrice.text = (product?.price ?: "Precio desconocido").toString()
-        }
-
-        mapsViewModel.closestUser.observe(viewLifecycleOwner) { user ->
-            binding.userName.text = user?.name ?: "Nombre desconocido"
             binding.userContact.text = user?.phone ?: "Contacto desconocido"
 
-            user?.location?.let { geoPoint ->
-                val userLatLng = LatLng(geoPoint.latitude, geoPoint.longitude)
+            if (user?.location != null && ::mMap.isInitialized) {
+                val userLatLng = LatLng(user.location.latitude, user.location.longitude)
+
                 mMap.addMarker(
                     MarkerOptions()
                         .position(userLatLng)
-                        .title("Producto cercano")
+                        .title(user.name)
+                        .snippet("Tel: ${user.phone}")
+                )
+
+                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(userLatLng, 15f))
+            }
+        }
+
+        mapsViewModel.closestProduct.observe(viewLifecycleOwner) { product ->
+            binding.productName.text = "Producto: ${product?.title ?: "Desconocido"}"
+            binding.userPrice.text = "Precio: ${product?.price ?: "No disponible"}"
+        }
+        mapsViewModel.distanceToClosestUser.observe(viewLifecycleOwner) { distance ->
+            binding.userDistance.text = "Distance to you: ${"%.0f".format(distance)}m"
+        }
+
+        mapsViewModel.nearbyUsers.observe(viewLifecycleOwner) { users ->
+            users.forEach { user ->
+                val userLatLng = LatLng(user.location.latitude, user.location.longitude)
+                mMap.addMarker(
+                    MarkerOptions()
+                        .position(userLatLng)
+                        .title(user.name)
+                        .snippet("Contacto: ${user.phone}")
                 )
             }
         }
+
+
         binding.backButton.setOnClickListener {
             requireActivity().onBackPressedDispatcher.onBackPressed()
         }
@@ -82,89 +97,53 @@ class MapsFragment : Fragment(), OnMapReadyCallback, GoogleMap.OnMyLocationButto
         mMap.setOnMyLocationButtonClickListener(this)
         mMap.setOnMyLocationClickListener(this)
         enableMyLocation()
-        moverCamaraALaUbicacion { posicionActual ->
-            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(posicionActual, 14.0f))
-            mapsViewModel.loadClosestProduct(posicionActual)
+
+        moverCamaraALaUbicacion { currentLocation ->
+            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(currentLocation, 14.0f))
+            mapsViewModel.loadNearbyUsers(currentLocation)
+            mapsViewModel.loadClosestProduct(currentLocation)
         }
     }
 
     private fun moverCamaraALaUbicacion(callback: (LatLng) -> Unit) {
         if (isPermissionsGranted()) {
-            val fusedLocationClient =
-                LocationServices.getFusedLocationProviderClient(requireContext())
+            val fusedLocationClient = LocationServices.getFusedLocationProviderClient(requireContext())
             fusedLocationClient.lastLocation.addOnSuccessListener { location: Location? ->
                 location?.let {
-                    val posicion = LatLng(it.latitude, it.longitude)
-                    callback(posicion)
+                    val latLng = LatLng(it.latitude, it.longitude)
+                    callback(latLng)
                 }
             }
         }
     }
 
     private fun isPermissionsGranted(): Boolean {
-        return (ContextCompat.checkSelfPermission(
-            requireContext(),
-            Manifest.permission.ACCESS_FINE_LOCATION
-        ) == PackageManager.PERMISSION_GRANTED ||
-                ContextCompat.checkSelfPermission(
-                    requireContext(),
-                    Manifest.permission.ACCESS_COARSE_LOCATION
-                ) == PackageManager.PERMISSION_GRANTED)
+        return ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
     }
 
     private fun enableMyLocation() {
         if (!::mMap.isInitialized) return
         if (isPermissionsGranted()) {
-            if (ActivityCompat.checkSelfPermission(
-                    requireContext(),
-                    Manifest.permission.ACCESS_FINE_LOCATION
-                ) != PackageManager.PERMISSION_GRANTED &&
-                ActivityCompat.checkSelfPermission(
-                    requireContext(),
-                    Manifest.permission.ACCESS_COARSE_LOCATION
-                ) != PackageManager.PERMISSION_GRANTED
-            ) {
-                return
-            }
+            if (ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) return
             mMap.isMyLocationEnabled = true
-            mMap.uiSettings.isMyLocationButtonEnabled = true
         } else {
-            requestLocationPermission()
+            requestPermissions(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), REQUEST_CODE_LOCATION)
         }
     }
 
-    private fun requestLocationPermission() {
-        requestPermissions(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), REQUEST_CODE_LOCATION)
-    }
-
-    override fun onRequestPermissionsResult(
-        requestCode: Int, permissions: Array<out String>, grantResults: IntArray
-    ) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == REQUEST_CODE_LOCATION) {
-            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                enableMyLocation()
-            } else {
-                Toast.makeText(
-                    requireContext(),
-                    "Ve a ajustes y acepta los permisos",
-                    Toast.LENGTH_SHORT
-                ).show()
-            }
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        if (requestCode == REQUEST_CODE_LOCATION && grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            enableMyLocation()
+        } else {
+            Toast.makeText(requireContext(), "Permiso requerido para mostrar tu ubicación", Toast.LENGTH_SHORT).show()
         }
     }
 
     override fun onMyLocationClick(location: Location) {
-        Toast.makeText(
-            requireContext(),
-            "Estás en ${location.latitude}, ${location.longitude}",
-            Toast.LENGTH_SHORT
-        ).show()
+        Toast.makeText(requireContext(), "Estás en: ${location.latitude}, ${location.longitude}", Toast.LENGTH_SHORT).show()
     }
 
-    override fun onMyLocationButtonClick(): Boolean {
-        return false
-    }
+    override fun onMyLocationButtonClick(): Boolean = false
 
     override fun onDestroyView() {
         super.onDestroyView()
