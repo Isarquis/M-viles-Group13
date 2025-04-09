@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:uni_marketplace_flutter/screens/product_detail.dart';
 import 'package:uni_marketplace_flutter/services/firestore_service.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class SearchBar extends StatefulWidget {
   final TextEditingController controller;
@@ -119,12 +120,6 @@ class _ProductListState extends State<ProductList> {
   final FirestoreService _firestoreService = FirestoreService();
   List<Map<String, dynamic>> _products = [];
   List<Map<String, dynamic>> _allProducts = [];
-  final List<String> _localImages = [
-    "assets/images/ProbabilidadYEstadistica.jpg",
-    "assets/images/calculadora.png",
-    "assets/images/algoritmos.png",
-    "assets/images/glasses.webp",
-  ];
 
   @override
   void initState() {
@@ -150,7 +145,7 @@ class _ProductListState extends State<ProductList> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () {},
+          onPressed: () => Navigator.pop(context),
         ),
         title: const Align(
           alignment: Alignment.centerLeft,
@@ -320,10 +315,16 @@ class _ProductListState extends State<ProductList> {
                       borderRadius: BorderRadius.circular(12),
                       child:
                           product["image"].startsWith('http')
-                              ? Image.network(
-                                product["image"],
+                              ? CachedNetworkImage(
+                                imageUrl: product["image"],
                                 fit: BoxFit.contain,
                                 height: 200,
+                                placeholder:
+                                    (context, url) =>
+                                        const CircularProgressIndicator(),
+                                errorWidget:
+                                    (context, url, error) =>
+                                        const Icon(Icons.error),
                               )
                               : Image.asset(
                                 product["image"],
