@@ -2,14 +2,19 @@ import 'package:flutter/material.dart';
 import 'screens/product_detail.dart';
 import 'screens/product_list.dart';
 import 'screens/test_products_screen.dart';
-import 'screens/post_product_screen.dart';
+import 'screens/post_product/post_product_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'widgets/custom_navbar.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
+  try {
+    await Firebase.initializeApp();
+    print('Firebase initialized successfully');
+  } catch (e) {
+    print('Error initializing Firebase: $e');
+  }
   runApp(const MyApp());
 }
 
@@ -37,7 +42,7 @@ class _HomeScreenState extends State<HomeScreen> {
   int currentIndex = 0;
 
   final List<Widget> screens = [
-    Center(child: Text('Home')), 
+    Center(child: Text('Home')),
     ProductList(),
     ProductDetail(productId: '60J3pS3bRnFjrksPd8hL'),
     PostProductScreen(),
