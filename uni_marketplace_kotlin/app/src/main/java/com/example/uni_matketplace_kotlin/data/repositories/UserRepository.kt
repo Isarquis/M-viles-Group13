@@ -2,10 +2,12 @@ package com.example.uni_matketplace_kotlin.data.repositories
 
 import android.util.Log
 import com.example.uni_matketplace_kotlin.data.model.User
+import com.example.uni_matketplace_kotlin.data.model.Product
 import com.google.android.gms.maps.model.LatLng
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.GeoPoint
 import kotlinx.coroutines.tasks.await
+import android.location.Location
 
 class UserRepository {
     private val db = FirebaseFirestore.getInstance()
@@ -36,5 +38,30 @@ class UserRepository {
         user?.let {
             usersCollection.document(it.id).update("location", GeoPoint(location.latitude, location.longitude)).await()
         }
+    }
+
+    suspend fun getClosestUserWithProduct(
+        currentLocation: LatLng,
+        maxDistance: Float,
+        productRepository: ProductRepository
+    ): Triple<User, Float, Product>? {
+        val users = getAllUsers()
+        return users
+            .filter { it.location?.latitude != null && it.location.longitude != null }
+            .mapNotNull { user ->
+                val userLatLng = LatLng(user.location!!.latitude!!, user.location.longitude!!)
+                val distance = calculateDistance(currentLocation, userLatLng)
+                if (distance <= maxDistance) {
+                    val products = productRepository.getProductsByUserId(user.id)
+                    if (products.isNotEmpty()) Triple(user, distance, products.first()) else null
+                } else null
+            }
+            .minByOrNull { it.second }
+    }
+
+    private fun calculateDistance(start: LatLng, end: LatLng): Float {
+        val results = FloatArray(1)
+        Location.distanceBetween(start.latitude, start.longitude, end.latitude, end.longitude, results)
+        return results[0]
     }
 }

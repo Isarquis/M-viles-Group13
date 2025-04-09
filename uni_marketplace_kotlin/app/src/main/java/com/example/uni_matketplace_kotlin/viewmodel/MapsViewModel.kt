@@ -26,31 +26,18 @@ class MapsViewModel(
     private val _distanceToClosestUser = MutableLiveData<Float>()
     val distanceToClosestUser: LiveData<Float> = _distanceToClosestUser
 
-
     fun loadClosestProduct(currentLocation: LatLng, maxDistance: Float = 2000f) {
         viewModelScope.launch {
-            val users = userRepository.getAllUsers()
+            val result = userRepository.getClosestUserWithProduct(currentLocation, maxDistance, productRepository)
 
-            val closestUserWithDistance = users
-                .filter { it.location?.latitude != null && it.location.longitude != null }
-                .mapNotNull { user ->
-                    val distance = calculateDistance(currentLocation, LatLng(user.location.latitude!!, user.location.longitude!!))
-                    if (distance <= maxDistance) user to distance else null
-                }
-                .minByOrNull { it.second }
-
-            val closestUser = closestUserWithDistance?.first
-            val distance = closestUserWithDistance?.second ?: 0f
-
-            _closestUser.value = closestUser
-            _distanceToClosestUser.value = distance
-
-
-            if (closestUser != null) {
-                val products = productRepository.getProductsByUserId(closestUser.id)
-                _closestProduct.value = products.firstOrNull()
-            } else {
+            result?.let { (user, distance, product) ->
+                _closestUser.value = user
+                _closestProduct.value = product
+                _distanceToClosestUser.value = distance
+            } ?: run {
+                _closestUser.value = null
                 _closestProduct.value = null
+                _distanceToClosestUser.value = null
             }
         }
     }
@@ -58,11 +45,18 @@ class MapsViewModel(
     fun loadNearbyUsers(currentLocation: LatLng, maxDistance: Float = 2000f) {
         viewModelScope.launch {
             val users = userRepository.getAllUsers()
-            val nearby = users.filter { user ->
-                user.location != null &&
-                        calculateDistance(currentLocation, LatLng(user.location.latitude!!, user.location.longitude!!)) <= maxDistance
+
+            val nearbyUsersWithProducts = users.mapNotNull { user ->
+                val location = user.location
+                if (location?.latitude != null && location.longitude != null) {
+                    val distance = calculateDistance(currentLocation, LatLng(location.latitude, location.longitude))
+                    if (distance <= maxDistance && productRepository.userHasProducts(user.id)) {
+                        user
+                    } else null
+                } else null
             }
-            _nearbyUsers.postValue(nearby)
+
+            _nearbyUsers.postValue(nearbyUsersWithProducts)
         }
     }
 

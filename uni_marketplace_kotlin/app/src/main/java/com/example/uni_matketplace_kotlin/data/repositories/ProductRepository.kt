@@ -10,21 +10,25 @@ class ProductRepository {
     private val productsCollection = db.collection("products")
 
     suspend fun getProductsByUserId(userId: String): List<Product> {
-        Log.d("ProductRepository", "Buscando productos para userId: $userId") // 👈 Log de entrada
-
+        Log.d("ProductRepository", "Buscando productos para userId: $userId")
         return try {
             val snapshot = productsCollection.whereEqualTo("ownerId", userId).get().await()
-            val products = snapshot.documents.mapNotNull { doc ->
-                val product = doc.toObject(Product::class.java)?.copy(id = doc.id)
-                Log.d("ProductRepository", "Producto encontrado: ${product?.title}, ownerId: ${product?.ownerId}") // 👈 Log de cada producto
-                product
+            snapshot.documents.mapNotNull { doc ->
+                doc.toObject(Product::class.java)?.copy(id = doc.id)
             }
-            Log.d("ProductRepository", "Total productos encontrados: ${products.size}")
-            products
         } catch (e: Exception) {
             Log.e("ProductRepository", "Error al obtener productos del usuario $userId", e)
             emptyList()
         }
     }
 
+    suspend fun userHasProducts(userId: String): Boolean {
+        return try {
+            val snapshot = productsCollection.whereEqualTo("ownerId", userId).limit(1).get().await()
+            !snapshot.isEmpty
+        } catch (e: Exception) {
+            Log.e("ProductRepository", "Error verificando productos del usuario $userId", e)
+            false
+        }
+    }
 }
