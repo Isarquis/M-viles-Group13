@@ -8,7 +8,7 @@
     android:background="@color/white"
     android:orientation="vertical"
     android:fitsSystemWindows="true"
-    tools:context=".MapsFragment">
+    tools:context="com.example.uni_matketplace_kotlin.ui.map.MapsFragment">
 
     <!-- Encabezado con título y botón de retroceso -->
     <RelativeLayout
@@ -84,6 +84,14 @@
                     android:text="Juan Herrera"
                     android:textSize="16sp"
                     android:textStyle="bold"
+                    android:textColor="@color/black"/>
+
+                <TextView
+                    android:id="@+id/productName"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Product: Bicicleta"
+                    android:textSize="14sp"
                     android:textColor="@color/black"/>
 
                 <TextView
