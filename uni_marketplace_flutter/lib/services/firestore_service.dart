@@ -177,4 +177,25 @@ class FirestoreService {
     await ref.putFile(file);
     return await ref.getDownloadURL();
   }
+
+  Future<void> logFeatureUsage(String feature) async {
+    await _db.collection('logs').add({
+      'type': 'feature_usage',
+      'feature': feature,
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  Future<void> logResponseTime(
+    DateTime requestedAt,
+    DateTime receivedAt,
+    DateTime showedAt,
+  ) async {
+    await _db.collection('logs').add({
+      'type': 'response_time',
+      'requested_at': requestedAt.millisecondsSinceEpoch,
+      'received_at': receivedAt.millisecondsSinceEpoch,
+      'showed_at': showedAt.millisecondsSinceEpoch,
+    });
+  }
 }

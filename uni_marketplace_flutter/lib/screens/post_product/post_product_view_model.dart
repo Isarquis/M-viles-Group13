@@ -95,6 +95,11 @@ class PostProductViewModel {
         throw Exception('Invalid product data');
       }
 
+      // Validar el correo electrónico
+      if (!isEmailValid(email)) {
+        throw Exception('Invalid email format');
+      }
+
       // Subir la imagen a S3 o al servicio que uses
       String imageUrl = await uploadImage(imageFile);
 
@@ -104,10 +109,7 @@ class PostProductViewModel {
         'description': description,
         'category': selectedCategory, // Guardamos la categoría seleccionada
         'price': price,
-        'type':
-            transactionTypes.isNotEmpty
-                ? transactionTypes[0]
-                : '', // Usamos el primer tipo de transacción
+        'type': transactionTypes.isNotEmpty ? transactionTypes : [],
         'image': imageUrl, // URL de la imagen subida
         'contactEmail': email,
         'status': 'Available', // El estado predeterminado del producto
