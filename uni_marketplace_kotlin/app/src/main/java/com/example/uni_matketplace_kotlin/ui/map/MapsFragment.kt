@@ -30,6 +30,8 @@ class MapsFragment : Fragment(), OnMapReadyCallback, GoogleMap.OnMyLocationButto
     private val binding get() = _binding!!
     private lateinit var mMap: GoogleMap
     private val mapsViewModel: MapsViewModel by viewModels()
+    private var closestUserMarker: com.google.android.gms.maps.model.Marker? = null
+
 
     companion object {
         private const val REQUEST_CODE_LOCATION = 1
@@ -46,46 +48,9 @@ class MapsFragment : Fragment(), OnMapReadyCallback, GoogleMap.OnMyLocationButto
         super.onViewCreated(view, savedInstanceState)
         val mapFragment = childFragmentManager.findFragmentById(R.id.map) as SupportMapFragment
         mapFragment.getMapAsync(this)
-
-        mapsViewModel.closestUser.observe(viewLifecycleOwner) { user ->
-            binding.userName.text = user?.name ?: "Nombre desconocido"
-            binding.userContact.text = user?.phone ?: "Contacto desconocido"
-
-            if (user?.location != null && ::mMap.isInitialized) {
-                val userLatLng = LatLng(user.location.latitude, user.location.longitude)
-
-                mMap.addMarker(
-                    MarkerOptions()
-                        .position(userLatLng)
-                        .title(user.name)
-                        .snippet("Tel: ${user.phone}")
-                )
-
-                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(userLatLng, 15f))
-            }
-        }
-
-        mapsViewModel.closestProduct.observe(viewLifecycleOwner) { product ->
-            binding.productName.text = "Producto: ${product?.title ?: "Desconocido"}"
-            binding.userPrice.text = "Precio: ${product?.price ?: "No disponible"}"
-        }
-        mapsViewModel.distanceToClosestUser.observe(viewLifecycleOwner) { distance ->
-            binding.userDistance.text = "Distance to you: ${"%.0f".format(distance)}m"
-        }
-
-        mapsViewModel.nearbyUsers.observe(viewLifecycleOwner) { users ->
-            users.forEach { user ->
-                val userLatLng = LatLng(user.location.latitude, user.location.longitude)
-                mMap.addMarker(
-                    MarkerOptions()
-                        .position(userLatLng)
-                        .title(user.name)
-                        .snippet("Contacto: ${user.phone}")
-                )
-            }
-        }
-
-
+        observeNearUsers()
+        observerClosestUser()
+        observerClosestProduct()
         binding.backButton.setOnClickListener {
             requireActivity().onBackPressedDispatcher.onBackPressed()
         }
@@ -104,6 +69,7 @@ class MapsFragment : Fragment(), OnMapReadyCallback, GoogleMap.OnMyLocationButto
             mapsViewModel.loadClosestProduct(currentLocation)
         }
     }
+
 
     private fun moverCamaraALaUbicacion(callback: (LatLng) -> Unit) {
         if (isPermissionsGranted()) {
@@ -148,5 +114,63 @@ class MapsFragment : Fragment(), OnMapReadyCallback, GoogleMap.OnMyLocationButto
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
+    }
+
+    private fun observerClosestUser(){
+        mapsViewModel.closestUser.observe(viewLifecycleOwner) { user ->
+            if (user?.location != null && ::mMap.isInitialized) {
+                val userLatLng = LatLng(user.location.latitude, user.location.longitude)
+
+                closestUserMarker?.remove()
+                closestUserMarker = mMap.addMarker(
+                    MarkerOptions()
+                        .position(userLatLng)
+                        .title(user.name)
+                        .snippet("Tel: ${user.phone}")
+                )
+
+                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(userLatLng, 15f))
+                binding.userName.text = user.name
+                binding.userContact.text = user.phone
+            }
+        }
+
+    }
+
+    private fun observerClosestProduct(){
+
+        mapsViewModel.closestProduct.observe(viewLifecycleOwner) { product ->
+            if (product != null) {
+                binding.productName.text = "Producto: ${product.title}"
+                binding.userPrice.text = "Precio: ${product.price}"
+            } else {
+
+                closestUserMarker?.remove()
+                closestUserMarker = null
+
+                binding.productName.text = "No hay productos cerca"
+                binding.userPrice.text = ""
+                binding.userContact.text = ""
+                binding.userName.text = ""
+                binding.userDistance.text = ""
+            }
+        }
+        mapsViewModel.distanceToClosestUser.observe(viewLifecycleOwner) { distance ->
+            binding.userDistance.text = "Distance to you: ${"%.0f".format(distance)}m"
+        }
+    }
+
+    private fun observeNearUsers(){
+        mapsViewModel.nearbyUsers.observe(viewLifecycleOwner) { users ->
+            users.forEach { user ->
+                val userLatLng = LatLng(user.location.latitude, user.location.longitude)
+                mMap.addMarker(
+                    MarkerOptions()
+                        .position(userLatLng)
+                        .title(user.name)
+                        .snippet("Contacto: ${user.phone}")
+                )
+            }
+        }
     }
 }
