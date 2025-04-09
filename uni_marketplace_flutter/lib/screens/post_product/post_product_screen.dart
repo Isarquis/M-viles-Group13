@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:uni_marketplace_flutter/screens/product_list.dart';
+import 'package:uni_marketplace_flutter/screens/post_product/post_product_view_model.dart';
 import 'package:uni_marketplace_flutter/services/firestore_service.dart';
-import 'package:uni_marketplace_flutter/screens/post_product/post_product_view_model.dart'; // Importar ViewModel
 
 class PostProductScreen extends StatefulWidget {
   const PostProductScreen({super.key});
@@ -18,7 +18,7 @@ class _PostProductScreenState extends State<PostProductScreen> {
   final TextEditingController _priceController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   String _selectedCategory = 'Math';
-  List<String> _transactionTypes = [];
+  final List<String> _transactionTypes = [];
   File? _image;
   bool _isLoading = false;
 
@@ -73,7 +73,7 @@ class _PostProductScreenState extends State<PostProductScreen> {
         description: _descriptionController.text,
         selectedCategory: _selectedCategory,
         price: double.parse(_priceController.text),
-        transactionTypes: _transactionTypes,
+        transactionTypes: _transactionTypes.isNotEmpty ? _transactionTypes : [],
         email: _emailController.text,
         imageFile: _image!,
       );
@@ -87,9 +87,17 @@ class _PostProductScreenState extends State<PostProductScreen> {
         MaterialPageRoute(builder: (context) => ProductList()),
       );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error al publicar el producto: $e')),
-      );
+      if (e.toString().contains("Invalid email format")) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Por favor, ingresa un correo electrónico válido'),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al publicar el producto: $e')),
+        );
+      }
     } finally {
       setState(() {
         _isLoading = false;
@@ -108,11 +116,11 @@ class _PostProductScreenState extends State<PostProductScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Post a Product'),
-        backgroundColor: Colors.white,
+        backgroundColor: const Color(0xFF4F7A94), // Cerulean
         elevation: 0,
         actions: [
           IconButton(
-            icon: const Icon(Icons.close, color: Colors.black),
+            icon: const Icon(Icons.close, color: Colors.white),
             onPressed: () => Navigator.pop(context),
           ),
         ],
@@ -122,28 +130,50 @@ class _PostProductScreenState extends State<PostProductScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Botones de imagen
             ElevatedButton.icon(
               onPressed: () => _pickImage(false),
               icon: const Icon(Icons.photo_library),
               label: const Text('Select from Gallery'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1F7A8C),
+                backgroundColor: const Color(0xFF1F7A8C), // Teal
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                  vertical: 12,
+                  horizontal: 20,
+                ),
+                textStyle: const TextStyle(
+                  fontSize: 16,
+                  fontFamily: 'Work Sans',
+                ),
               ),
             ),
+            const SizedBox(height: 10),
             ElevatedButton.icon(
               onPressed: () => _pickImage(true),
               icon: const Icon(Icons.camera_alt),
               label: const Text('Take a Photo'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF1F7A8C),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                  vertical: 12,
+                  horizontal: 20,
+                ),
+                textStyle: const TextStyle(
+                  fontSize: 16,
+                  fontFamily: 'Work Sans',
+                ),
               ),
             ),
+            const SizedBox(height: 20),
+            // Mostrar la imagen seleccionada
             if (_image != null)
               Padding(
                 padding: const EdgeInsets.only(top: 10),
                 child: Stack(
                   children: [
-                    Image.file(_image!, height: 100),
+                    Image.file(_image!, height: 150),
                     Positioned(
                       top: -5,
                       right: -5,
@@ -166,7 +196,104 @@ class _PostProductScreenState extends State<PostProductScreen> {
                   ],
                 ),
               ),
-            // Resto de campos de formulario aquí (nombre, descripción, precio, etc.)
+            const SizedBox(height: 16),
+            // Campos del formulario
+            TextField(
+              controller: _nameController,
+              decoration: const InputDecoration(labelText: 'Product Name'),
+              style: const TextStyle(fontFamily: 'Work Sans', fontSize: 16),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _descriptionController,
+              decoration: const InputDecoration(labelText: 'Description'),
+              style: const TextStyle(fontFamily: 'Work Sans', fontSize: 16),
+            ),
+            const SizedBox(height: 16),
+            DropdownButtonFormField<String>(
+              value: _selectedCategory,
+              items:
+                  _categories.map((category) {
+                    return DropdownMenuItem(
+                      value: category,
+                      child: Text(
+                        category,
+                        style: const TextStyle(fontFamily: 'Work Sans'),
+                      ),
+                    );
+                  }).toList(),
+              onChanged: (value) {
+                setState(() {
+                  _selectedCategory = value!;
+                });
+              },
+              decoration: const InputDecoration(
+                labelText: 'Category',
+                labelStyle: TextStyle(fontFamily: 'Work Sans', fontSize: 16),
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _priceController,
+              decoration: const InputDecoration(labelText: 'Price (COP)'),
+              keyboardType: TextInputType.number,
+              style: const TextStyle(fontFamily: 'Work Sans', fontSize: 16),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Transaction Types:',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontFamily: 'Lexend Bold',
+                fontSize: 20,
+              ),
+            ),
+            CheckboxListTile(
+              title: const Text('Rental'),
+              value: _transactionTypes.contains('Rent'),
+              onChanged: (value) {
+                setState(() {
+                  if (value!) {
+                    _transactionTypes.add('Rent');
+                  } else {
+                    _transactionTypes.remove('Rent');
+                  }
+                });
+              },
+            ),
+            CheckboxListTile(
+              title: const Text('Buy'),
+              value: _transactionTypes.contains('Buy'),
+              onChanged: (value) {
+                setState(() {
+                  if (value!) {
+                    _transactionTypes.add('Buy');
+                  } else {
+                    _transactionTypes.remove('Buy');
+                  }
+                });
+              },
+            ),
+            CheckboxListTile(
+              title: const Text('Bid'),
+              value: _transactionTypes.contains('Bidding'),
+              onChanged: (value) {
+                setState(() {
+                  if (value!) {
+                    _transactionTypes.add('Bidding');
+                  } else {
+                    _transactionTypes.remove('Bidding');
+                  }
+                });
+              },
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _emailController,
+              decoration: const InputDecoration(labelText: 'Contact Email'),
+              keyboardType: TextInputType.emailAddress,
+              style: const TextStyle(fontFamily: 'Work Sans', fontSize: 16),
+            ),
             const SizedBox(height: 20),
             Center(
               child:
@@ -186,6 +313,7 @@ class _PostProductScreenState extends State<PostProductScreen> {
                           style: TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
+                            fontFamily: 'Lexend Bold',
                           ),
                         ),
                       ),
