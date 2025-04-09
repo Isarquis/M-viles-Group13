@@ -1,5 +1,6 @@
 package com.example.uni_matketplace_kotlin.ui.map
 
+import SessionViewModel
 import android.Manifest
 import android.content.pm.PackageManager
 import android.location.Location
@@ -31,7 +32,7 @@ class MapsFragment : Fragment(), OnMapReadyCallback, GoogleMap.OnMyLocationButto
     private lateinit var mMap: GoogleMap
     private val mapsViewModel: MapsViewModel by viewModels()
     private var closestUserMarker: com.google.android.gms.maps.model.Marker? = null
-
+    private val sessionViewModel: SessionViewModel by viewModels()
 
     companion object {
         private const val REQUEST_CODE_LOCATION = 1
@@ -70,6 +71,18 @@ class MapsFragment : Fragment(), OnMapReadyCallback, GoogleMap.OnMyLocationButto
         }
     }
 
+    // Anaalytics Pipeline
+    override fun onResume() {
+        super.onResume()
+        sessionViewModel.logEvent("enter", "map")
+    }
+
+    override fun onPause() {
+        super.onPause()
+        sessionViewModel.logEvent("exit", "map")
+    }
+
+    //Addition
 
     private fun moverCamaraALaUbicacion(callback: (LatLng) -> Unit) {
         if (isPermissionsGranted()) {
@@ -82,6 +95,8 @@ class MapsFragment : Fragment(), OnMapReadyCallback, GoogleMap.OnMyLocationButto
             }
         }
     }
+
+    //Permissions
 
     private fun isPermissionsGranted(): Boolean {
         return ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
@@ -115,6 +130,8 @@ class MapsFragment : Fragment(), OnMapReadyCallback, GoogleMap.OnMyLocationButto
         super.onDestroyView()
         _binding = null
     }
+
+    //Obsevers
 
     private fun observerClosestUser(){
         mapsViewModel.closestUser.observe(viewLifecycleOwner) { user ->

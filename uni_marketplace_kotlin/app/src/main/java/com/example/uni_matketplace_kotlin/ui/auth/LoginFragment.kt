@@ -1,9 +1,12 @@
 package com.example.uni_matketplace_kotlin.ui.auth
 
+import SessionViewModel
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.fragment.app.viewModels
 import com.example.uni_matketplace_kotlin.MainActivity
 import com.example.uni_matketplace_kotlin.databinding.ActivityLoginBinding
 import com.google.firebase.auth.FirebaseAuth
@@ -12,6 +15,8 @@ class LoginActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityLoginBinding
     private lateinit var auth: FirebaseAuth
+    private val sessionViewModel: SessionViewModel by viewModels()
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -47,4 +52,16 @@ class LoginActivity : AppCompatActivity() {
             startActivity(Intent(this, RegisterActivity::class.java))
         }
     }
+
+    //Analytics Pipeline
+    override fun onResume() {
+        super.onResume()
+        sessionViewModel.logEvent("enter", "login")
+    }
+
+    override fun onPause() {
+        super.onPause()
+        sessionViewModel.logEvent("exit", "login")
+    }
+
 }
