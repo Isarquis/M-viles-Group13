@@ -3,10 +3,16 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:http/http.dart' as http;
-import 'dart:convert';
 
 class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
+
+  FirestoreService() {
+    _db.settings = const Settings(
+      persistenceEnabled: true, //  Offline caching
+      cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
+    );
+  }
 
   // USERS
   Future<void> createUser(String userId, Map<String, dynamic> data) async {
@@ -47,14 +53,11 @@ class FirestoreService {
 
       // Verificar el código de estado de la respuesta
       if (response.statusCode == 200) {
-        print('Image uploaded successfully');
         return uri.toString(); // Devuelve la URL de la imagen cargada
       } else {
-        print('Image upload failed with status code: ${response.statusCode}');
         throw Exception('Upload failed');
       }
     } catch (e) {
-      print('Error uploading image to S3: $e');
       rethrow; // Volver a lanzar el error si ocurre un problema
     }
   }
