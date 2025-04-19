@@ -12,7 +12,6 @@
 **/local.properties
 **/.idea/
 **/*.iml
-**/build/
 **/captures/
 
 # General
@@ -36,3 +35,9 @@ __pycache__/
 
 # FastAPI logs
 fastapi-logs/
+fastapi-logs/venv/
+fastapi-logs/__pycache__/
+fastapi-logs/.env
+fastapi-logs/*.pyc
+fastapi-logs/.pytest_cache/
+fastapi-logs/firebase-key.json

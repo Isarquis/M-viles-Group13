@@ -2,7 +2,11 @@ import 'package:flutter/material.dart';
 import 'screens/product_detail.dart';
 import 'screens/product_list.dart';
 import 'screens/test_products_screen.dart';
+
+import 'screens/profile_view.dart';
+
 import 'screens/post_product/post_product_screen.dart';
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'widgets/custom_navbar.dart';
@@ -43,6 +47,7 @@ class _HomeScreenState extends State<HomeScreen> {
   int currentIndex = 0;
   final FirestoreService _firestoreService = FirestoreService();
 
+
   final List<Widget> screens = [
     Center(child: Text('Home')),
     ProductList(),
@@ -52,8 +57,18 @@ class _HomeScreenState extends State<HomeScreen> {
     Center(child: Text('Profile')),
   ];
 
+
   @override
   Widget build(BuildContext context) {
+    final screens = [
+      Center(child: Text('Home')),
+      ProductList(),
+      ProductDetail(productId: '60J3pS3bRnFjrksPd8hL'),
+      TestProductsScreen(),
+      Center(child: Text('Map')),
+      ProfileView(onDiscoverTapped: () => setState(() => currentIndex = 1)),
+    ];
+
     return Scaffold(
       body: screens[currentIndex],
       bottomNavigationBar: CustomNavBar(
