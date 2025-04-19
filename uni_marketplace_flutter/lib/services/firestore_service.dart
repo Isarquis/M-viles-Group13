@@ -2,9 +2,17 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
+import 'package:http/http.dart' as http;
 
 class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
+
+  FirestoreService() {
+    _db.settings = const Settings(
+      persistenceEnabled: true, //  Offline caching
+      cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
+    );
+  }
 
   // USERS
   Future<void> createUser(String userId, Map<String, dynamic> data) async {
@@ -19,10 +27,39 @@ class FirestoreService {
   }
 
   // PRODUCTS
+
   Future<void> addProduct(Map<String, dynamic> data) async {
-    String imageUrl = await uploadImage('products');
-    data['imageUrl'] = imageUrl;
-    await _db.collection('products').add(data);
+    await FirebaseFirestore.instance.collection('products').add(data);
+  }
+
+  Future<String> uploadImageToS3(File imageFile) async {
+    try {
+      // Generar un nombre único para el archivo
+      String fileName = '${DateTime.now().millisecondsSinceEpoch}.jpg';
+
+      // URL del bucket S3
+      final uri = Uri.parse(
+        'https://unimarketimagesbucket.s3.amazonaws.com/$fileName',
+      );
+
+      // Realizar la solicitud PUT para subir la imagen
+      final request =
+          http.Request('PUT', uri)
+            ..headers['Content-Type'] = 'image/jpeg'
+            ..bodyBytes =
+                imageFile.readAsBytesSync(); // Asignar la lista de bytes
+
+      final response = await request.send();
+
+      // Verificar el código de estado de la respuesta
+      if (response.statusCode == 200) {
+        return uri.toString(); // Devuelve la URL de la imagen cargada
+      } else {
+        throw Exception('Upload failed');
+      }
+    } catch (e) {
+      rethrow; // Volver a lanzar el error si ocurre un problema
+    }
   }
 
   Future<List<Map<String, dynamic>>> getAllProducts() async {
@@ -82,10 +119,12 @@ class FirestoreService {
         .map((doc) => doc.data() as Map<String, dynamic>)
         .toList();
   }
+
   Future<Map<String, dynamic>?> getProductById(String id) async {
-  var doc = await FirebaseFirestore.instance.collection('products').doc(id).get();
-  return doc.exists ? doc.data() : null;
-}
+    var doc =
+        await FirebaseFirestore.instance.collection('products').doc(id).get();
+    return doc.exists ? doc.data() : null;
+  }
 
   Future<List<Map<String, dynamic>>> getBiddersFromBids(
     List<Map<String, dynamic>> bids,
@@ -112,7 +151,7 @@ class FirestoreService {
             .where('productId', isEqualTo: productId)
             .get();
     List<Map<String, dynamic>> combined = [];
-    
+
     for (var doc in snapshot.docs) {
       var bid = doc.data();
       var bidderId = bid['bidder'];
@@ -123,7 +162,10 @@ class FirestoreService {
         }
       }
     }
-    combined.sort((a, b) => (b['bid']['amount'] as int).compareTo(a['bid']['amount'] as int));
+    combined.sort(
+      (a, b) =>
+          (b['bid']['amount'] as int).compareTo(a['bid']['amount'] as int),
+    );
     return combined;
   }
 
@@ -137,5 +179,26 @@ class FirestoreService {
     var ref = FirebaseStorage.instance.ref().child('$folder/$fileName.jpg');
     await ref.putFile(file);
     return await ref.getDownloadURL();
+  }
+
+  Future<void> logFeatureUsage(String feature) async {
+    await _db.collection('logs').add({
+      'type': 'feature_usage',
+      'feature': feature,
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  Future<void> logResponseTime(
+    DateTime requestedAt,
+    DateTime receivedAt,
+    DateTime showedAt,
+  ) async {
+    await _db.collection('logs').add({
+      'type': 'response_time',
+      'requested_at': requestedAt.millisecondsSinceEpoch,
+      'received_at': receivedAt.millisecondsSinceEpoch,
+      'showed_at': showedAt.millisecondsSinceEpoch,
+    });
   }
 }
