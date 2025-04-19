@@ -64,7 +64,7 @@ class _HomeScreenState extends State<HomeScreen> {
       Center(child: Text('Home')),
       ProductList(),
       ProductDetail(productId: '60J3pS3bRnFjrksPd8hL'),
-      TestProductsScreen(),
+      PostProductScreen(),
       Center(child: Text('Map')),
       ProfileView(onDiscoverTapped: () => setState(() => currentIndex = 1)),
     ];

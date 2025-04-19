@@ -16,7 +16,6 @@ class _PostProductScreenState extends State<PostProductScreen> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _priceController = TextEditingController();
-  final TextEditingController _emailController = TextEditingController();
   String _selectedCategory = 'Math';
   final List<String> _transactionTypes = [];
   File? _image;
@@ -73,8 +72,8 @@ class _PostProductScreenState extends State<PostProductScreen> {
         description: _descriptionController.text,
         selectedCategory: _selectedCategory,
         price: double.parse(_priceController.text),
+        ownerId: '202113407',
         transactionTypes: _transactionTypes.isNotEmpty ? _transactionTypes : [],
-        email: _emailController.text,
         imageFile: _image!,
       );
 
@@ -286,13 +285,6 @@ class _PostProductScreenState extends State<PostProductScreen> {
                   }
                 });
               },
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _emailController,
-              decoration: const InputDecoration(labelText: 'Contact Email'),
-              keyboardType: TextInputType.emailAddress,
-              style: const TextStyle(fontFamily: 'Work Sans', fontSize: 16),
             ),
             const SizedBox(height: 20),
             Center(

@@ -28,7 +28,7 @@ class _ProfileViewState extends State<ProfileView> {
 
   @override
   Widget build(BuildContext context) {
-    String lastSoldImage = profile.lastSold?['imageUrl'] ?? '';
+    String lastSoldImage = profile.lastSold?['imageUrl'] ?? profile.lastSold?['image'] ?? '';
     return Scaffold(
       appBar: AppBar(title: Text('My Profile')),
       body: SingleChildScrollView(
@@ -68,6 +68,7 @@ class _ProfileViewState extends State<ProfileView> {
               'Posted Products',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
+            SizedBox(height: 8),
             profile.postedProducts.isNotEmpty
                 ? Row(
                   children:
@@ -76,7 +77,7 @@ class _ProfileViewState extends State<ProfileView> {
                         return imagePath.isNotEmpty
                           ? ProductCard(
                               imagePath: imagePath,
-                              endDate: p['endDate'] ?? '',
+                              title: p['title'] ?? '',
                             )
                           : Container();
                       }).toList(),
@@ -90,7 +91,7 @@ class _ProfileViewState extends State<ProfileView> {
             profile.lastSold != null
                 ? ProductCard(
                   imagePath: lastSoldImage,
-                  endDate: profile.lastSold?['price'] ?? '',
+                  title: profile.lastSold?['title'] ?? '',
                 )
                 : Text("No sales yet."),
             SizedBox(height: 24),
@@ -98,6 +99,7 @@ class _ProfileViewState extends State<ProfileView> {
               'Currently Rented',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
+            SizedBox(height: 8),
             profile.rentedProducts.isNotEmpty
                 ? Row(
                   children:
@@ -106,7 +108,7 @@ class _ProfileViewState extends State<ProfileView> {
                         return imagePath.isNotEmpty
                           ? ProductCard(
                               imagePath: imagePath,
-                              endDate: p['endDate'] ?? '',
+                              title: p['title'] ?? '',
                             )
                           : Container();
                       }).toList(),

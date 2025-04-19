@@ -1,8 +1,7 @@
 import 'dart:io';
 import 'package:connectivity_plus/connectivity_plus.dart'; // Paquete de conectividad
 import 'package:uni_marketplace_flutter/services/firestore_service.dart';
-import 'package:image/image.dart'
-    as img; // Importación de la librería 'image' para manipular imágenes
+import 'package:image/image.dart' as img;
 import 'package:flutter_image_compress/flutter_image_compress.dart'; // Importación para comprimir imágenes
 
 class PostProductViewModel {
@@ -67,11 +66,6 @@ class PostProductViewModel {
     }
   }
 
-  bool isEmailValid(String email) {
-    final regex = RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$');
-    return regex.hasMatch(email);
-  }
-
   // Método para publicar el producto
   Future<void> postProduct({
     required String title,
@@ -79,8 +73,8 @@ class PostProductViewModel {
     required String selectedCategory,
     required double price,
     required List<String> transactionTypes,
-    required String email,
     required File imageFile,
+    required String ownerId,
   }) async {
     try {
       // Validar los datos antes de proceder
@@ -90,14 +84,8 @@ class PostProductViewModel {
         selectedCategory,
         price,
         transactionTypes,
-        email,
       )) {
         throw Exception('Invalid product data');
-      }
-
-      // Validar el correo electrónico
-      if (!isEmailValid(email)) {
-        throw Exception('Invalid email format');
       }
 
       // Subir la imagen a S3 o al servicio que uses
@@ -111,8 +99,9 @@ class PostProductViewModel {
         'price': price,
         'type': transactionTypes.isNotEmpty ? transactionTypes : [],
         'image': imageUrl, // URL de la imagen subida
-        'contactEmail': email,
         'status': 'Available', // El estado predeterminado del producto
+        'ownerId': ownerId, // O el ID dinámico del usuario actual
+        'createdAt': DateTime.now(),
       };
 
       // Llamada al servicio de Firestore para agregar el producto
@@ -131,13 +120,11 @@ class PostProductViewModel {
     String selectedCategory,
     double price,
     List<String> transactionTypes,
-    String email,
   ) {
     return title.isNotEmpty &&
         description.isNotEmpty &&
         selectedCategory.isNotEmpty &&
         price > 0 &&
-        transactionTypes.isNotEmpty &&
-        isEmailValid(email); // Verifica si el correo es válido
+        transactionTypes.isNotEmpty; // Verifica si el correo es válido
   }
 }

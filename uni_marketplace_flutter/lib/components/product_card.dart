@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 
 class ProductCard extends StatelessWidget {
   final String imagePath;
-  final String endDate;
+  final String title;
 
   const ProductCard({
     Key? key,
     required this.imagePath,
-    required this.endDate,
+    required this.title,
   }) : super(key: key);
 
   @override
@@ -24,10 +24,13 @@ class ProductCard extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Image.network(imagePath, height: 80, fit: BoxFit.contain),
+          SizedBox(
+            height: 100,
+            child: Image.network(imagePath, fit: BoxFit.contain),
+          ),
           SizedBox(height: 8),
           Text(
-            'End date: $endDate',
+            title,
             style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
           ),
         ],
