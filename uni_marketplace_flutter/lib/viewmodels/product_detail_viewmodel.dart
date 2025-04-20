@@ -19,8 +19,10 @@ class ProductDetailViewModel extends ChangeNotifier {
   bool get isLoading => _isLoading;
 
   ProductDetailViewModel(this.productId) {
-    loadProduct();
-    loadBids();
+    loadProduct().then((_) {
+      loadBids();
+      loadRentOffers();
+    });
   }
 
   Future<void> loadProduct() async {
@@ -43,23 +45,36 @@ class ProductDetailViewModel extends ChangeNotifier {
     _isLoading = true;
     notifyListeners();
 
-    final combined = await _firestoreService.getBidsWithUsersByProduct(productId);
+    final combined = await _firestoreService.getBidsWithUsersByProduct(
+      productId,
+    );
 
     for (var item in combined) {
       final bid = item['bid'];
+
       if (bid['createdAt'] is Timestamp) {
         final ts = bid['createdAt'] as Timestamp;
         final date = ts.toDate();
-        bid['createdAt'] = '${date.day}/${date.month}/${date.year} ${date.hour}:${date.minute}';
+        bid['createdAt'] =
+            '${date.day}/${date.month}/${date.year} ${date.hour}:${date.minute}';
       }
+
     }
 
-    int maxBid = int.tryParse(_product?['baseBid']?.toString().replaceAll('.', '') ?? '0') ?? 0;
+    
+    int maxBid =
+        int.tryParse(
+          _product?['baseBid']?.toString().replaceAll('.0', '') ?? '0',
+        ) ??
+        0;
     for (var item in combined) {
       int bidAmount = item['bid']['amount'] ?? 0;
-      if (bidAmount > maxBid) maxBid = bidAmount;
+      if (bidAmount >= maxBid) {
+        maxBid = bidAmount;
+        _highestBid = maxBid;
+      }
     }
-    _highestBid = maxBid;
+    
     _bidsWithUsers = combined;
 
     _isLoading = false;
@@ -73,7 +88,39 @@ class ProductDetailViewModel extends ChangeNotifier {
     _isLoading = true;
     notifyListeners();
 
-    _rentOffersWithUsers = await _firestoreService.getRentOffersWithUsersByProduct(productId);
+    final combined = await _firestoreService.getRentOffersWithUsersByProduct(
+      productId,
+    );
+
+    // Normalizar y formatear fechas
+    for (var item in combined) {
+      // Asegurar clave estándar 'offer'
+      if (item['offer'] == null) {
+        if (item['rentOffer'] != null) {
+          item['offer'] = item['rentOffer'];
+        } else if (item['rent'] != null) {
+          item['offer'] = item['rent'];
+        }
+      }
+
+      final offer = item['offer'];
+      if (offer != null) {
+        // Asegurar que exista 'amount'
+        if (offer['amount'] == null && offer['price'] != null) {
+          offer['amount'] = offer['price'];
+        }
+
+        // Formatear fecha
+        if (offer['createdAt'] is Timestamp) {
+          final ts = offer['createdAt'] as Timestamp;
+          final d = ts.toDate();
+          offer['createdAt'] =
+              '${d.day}/${d.month}/${d.year} ${d.hour}:${d.minute.toString().padLeft(2, '0')}';
+        }
+      }
+    }
+
+    _rentOffersWithUsers = combined;
 
     _isLoading = false;
     notifyListeners();
@@ -84,10 +131,22 @@ class ProductDetailViewModel extends ChangeNotifier {
     if (bidId != null) {
       try {
         await _firestoreService.deleteBidById(bidId);
-        print('Bid $bidId deleted successfully');
+        // success
         await loadBids();
       } catch (e) {
-        print('Failed to delete bid $bidId: $e');
+        // error
+      }
+    }
+  }
+
+  Future<void> deleteRentOffer(Map<String, dynamic> offer) async {
+    final offerId = offer['id'];
+    if (offerId != null) {
+      try {
+        await _firestoreService.deleteRentOfferById(offerId);
+        await loadRentOffers();
+      } catch (e) {
+        // error
       }
     }
   }

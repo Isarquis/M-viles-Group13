@@ -74,7 +74,9 @@ class FirestoreService {
 
   Future<List<Product>> getAllProducts() async {
     var snapshot = await _db.collection('products').get();
-    return snapshot.docs.map((doc) => Product.fromMap(doc.data(), doc.id)).toList();
+    return snapshot.docs
+        .map((doc) => Product.fromMap(doc.data(), doc.id))
+        .toList();
   }
 
   Future<List<Product>> getProductsByType(String type) async {
@@ -83,7 +85,9 @@ class FirestoreService {
             .collection('products')
             .where('type', arrayContains: type)
             .get();
-    return snapshot.docs.map((doc) => Product.fromMap(doc.data(), doc.id)).toList();
+    return snapshot.docs
+        .map((doc) => Product.fromMap(doc.data(), doc.id))
+        .toList();
   }
 
   Future<void> updateProductStatus(String productId, String status) async {
@@ -92,11 +96,22 @@ class FirestoreService {
 
   // BIDS
   Future<void> placeBid(Map<String, dynamic> bidData) async {
-    await _db.collection('bids').add(bidData);
+    print('Placing bidd: $bidData');
+    try {
+      var docRef = await _db.collection('bids').add(bidData);
+      print('Bid placed with ID: ${docRef.id}');
+    } catch (e) {
+      print('Error placing bid: $e');
+      rethrow;
+    }
   }
 
   Future<void> deleteBidById(String bidId) async {
     await _db.collection('bids').doc(bidId).delete();
+  }
+
+  Future<void> deleteRentOfferById(String offerId) async {
+    await _db.collection('rents').doc(offerId).delete();
   }
 
   Future<List<Map<String, dynamic>>> getBidsByProduct(String productId) async {
@@ -170,10 +185,12 @@ class FirestoreService {
         }
       }
     }
+    
     combined.sort(
       (a, b) =>
           (b['bid']['amount'] as int).compareTo(a['bid']['amount'] as int),
     );
+
     return combined;
   }
 
@@ -213,15 +230,18 @@ class FirestoreService {
   Future<void> placeRentOffer(Map<String, dynamic> rentData) async {
     await _db.collection('rents').add(rentData);
   }
-  
-  Future<List<Map<String, dynamic>>> getRentOffersWithUsersByProduct(String productId) async {
-    var snapshot = await _db
-        .collection('rents')
-        .where('productId', isEqualTo: productId)
-        .get();
-  
+
+  Future<List<Map<String, dynamic>>> getRentOffersWithUsersByProduct(
+    String productId,
+  ) async {
+    var snapshot =
+        await _db
+            .collection('rents')
+            .where('productId', isEqualTo: productId)
+            .get();
+
     List<Map<String, dynamic>> combined = [];
-  
+
     for (var doc in snapshot.docs) {
       var rent = doc.data();
       rent['id'] = doc.id;
@@ -233,10 +253,14 @@ class FirestoreService {
         }
       }
     }
-  
-    combined.sort((a, b) =>
-        (b['rent']['price'] as int).compareTo(a['rent']['price'] as int));
-  
+
+    combined.sort(
+      (a, b) =>
+          (b['rent']['price'] as int).compareTo(a['rent']['price'] as int),
+    );
+
+
+
     return combined;
   }
 }
