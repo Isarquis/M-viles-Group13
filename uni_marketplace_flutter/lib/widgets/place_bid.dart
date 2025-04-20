@@ -81,7 +81,9 @@ class PlaceBidSection extends StatelessWidget {
                     controller: bidController,
                     decoration: InputDecoration(
                       contentPadding: EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 8),
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
                       hintText: 'ej. 35.000',
                       hintStyle: TextStyle(color: Colors.blueGrey),
                       filled: true,
@@ -107,17 +109,23 @@ class PlaceBidSection extends StatelessWidget {
         SizedBox(height: 24),
         ElevatedButton(
           onPressed: () async {
-            final bidValue = int.tryParse(
-                    bidController.text.replaceAll('.', '')) ??
-                0;
-            final baseBid = highestBid ??
-                int.tryParse(product['baseBid']
-                        .toString()
-                        .replaceAll('.', '')) ??
+            final bidValue =
+                int.tryParse(bidController.text.replaceAll('.', '')) ?? 0;
+            final baseBid =
+                highestBid ??
+                int.tryParse(
+                  product['baseBid'].toString().replaceAll('.', ''),
+                ) ??
                 0;
             if (bidValue < baseBid) {
-              setShowPlaceBid(true);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Your bid must be at least $baseBid COP'),
+                ),
+              );
+              return;
             } else {
+              print('Placing bid: ${bidController.text}');
               final bidData = {
                 'amount': bidValue,
                 'bidder': '202113407',
@@ -145,4 +153,3 @@ class PlaceBidSection extends StatelessWidget {
     );
   }
 }
-

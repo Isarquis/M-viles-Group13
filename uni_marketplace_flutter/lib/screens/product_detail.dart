@@ -8,6 +8,7 @@ import 'package:uni_marketplace_flutter/widgets/place_bid.dart';
 import '../widgets/show_bidders.dart';
 import '../widgets/place_rent_offer.dart';
 import '../viewmodels/product_detail_viewmodel.dart';
+import '../widgets/show_rent_offerers.dart';
 
 Map<String, dynamic> fallbackProduct = {
   'name': 'Cargando...',
@@ -38,6 +39,7 @@ class _ProductDetailState extends State<ProductDetail> {
   bool showBidders = false;
   bool showPlaceBid = false;
   bool showPlaceRentOffer = false;
+  bool showRentOfferers = false;
   List<Map<String, dynamic>> users = [];
   TextEditingController bidController = TextEditingController();
   String? bidError;
@@ -49,8 +51,11 @@ class _ProductDetailState extends State<ProductDetail> {
   }
 
   int getMinimumBid(ProductDetailViewModel viewModel) {
-    int base = viewModel.highestBid;
-    return (base * 1.05).ceil();
+    num rawBase = viewModel.product?['baseBid'] ?? 0;
+    int baseBid = rawBase is int ? rawBase : rawBase.toInt();
+    int highest = viewModel.highestBid;
+    if (highest == 0) return baseBid;
+    return (highest * 1.05).ceil();
   }
 
   void handleAction(String type) {
@@ -77,7 +82,9 @@ class _ProductDetailState extends State<ProductDetail> {
       child: Consumer<ProductDetailViewModel>(
         builder: (context, viewModel, _) {
           if (viewModel.product == null) {
-            return const Scaffold(body: Center(child: CircularProgressIndicator()));
+            return const Scaffold(
+              body: Center(child: CircularProgressIndicator()),
+            );
           }
 
           final typesList = List<String>.from(viewModel.product?['type'] ?? []);
@@ -89,7 +96,12 @@ class _ProductDetailState extends State<ProductDetail> {
           });
           return Scaffold(
             backgroundColor: Colors.white,
-            appBar: AppBar(leading: BackButton(), elevation: 0),
+            appBar: AppBar(
+              leading: BackButton(),
+              elevation: 0,
+              backgroundColor: Colors.white,
+              foregroundColor: Colors.black,
+            ),
             body: Padding(
               padding: const EdgeInsets.all(16),
               child: SingleChildScrollView(
@@ -102,7 +114,10 @@ class _ProductDetailState extends State<ProductDetail> {
                           maxHeight: MediaQuery.of(context).size.height * 0.4,
                         ),
                         child:
-                                (viewModel.product?['imageUrl']?.toString().startsWith('http') ?? false)
+                            (viewModel.product?['imageUrl']
+                                        ?.toString()
+                                        .startsWith('http') ??
+                                    false)
                                 ? Image.network(
                                   viewModel.product?['imageUrl'],
                                   fit: BoxFit.contain,
@@ -116,7 +131,10 @@ class _ProductDetailState extends State<ProductDetail> {
                     SizedBox(height: 16),
                     Text(
                       viewModel.product?['name'],
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
                     ),
                     SizedBox(height: 8),
                     Center(
@@ -132,7 +150,10 @@ class _ProductDetailState extends State<ProductDetail> {
                     SizedBox(height: 16),
                     Text(
                       'Description',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
                     ),
                     SizedBox(height: 8),
                     Text(viewModel.product?['description']),
@@ -151,7 +172,8 @@ class _ProductDetailState extends State<ProductDetail> {
                         productId: widget.productId,
                         loadProduct: viewModel.loadProduct,
                         loadOffers: viewModel.loadRentOffers,
-                        setShowRentOffer: (val) => setState(() => showPlaceRentOffer = val),
+                        setShowRentOffer:
+                            (val) => setState(() => showPlaceRentOffer = val),
                         context: context,
                       ),
                     ] else if (showPlaceBid) ...[
@@ -165,29 +187,43 @@ class _ProductDetailState extends State<ProductDetail> {
                         loadProduct: viewModel.loadProduct,
                         loadBids: viewModel.loadBids,
                         context: context,
-                        setShowPlaceBid: (val) => setState(() => showPlaceBid = val),
-                        setShowBidders: (val) => setState(() => showBidders = val),
+                        setShowPlaceBid:
+                            (val) => setState(() => showPlaceBid = val),
+                        setShowBidders:
+                            (val) => setState(() => showBidders = val),
                       ),
                     ] else if (showBidders) ...[
                       BiddersWidget(
                         bidWithUser: viewModel.bidsWithUsers,
                         onClose: () => setState(() => showBidders = false),
                       ),
+                    ] else if (showRentOfferers) ...[
+                      RentOfferersWidget(
+                        offers: viewModel.rentOffersWithUsers,
+                        onClose: () => setState(() => showRentOfferers = false),
+                      ),
                     ] else ...[
                       Divider(),
                       ListTile(
                         title: Text(
                           'Similar items',
-                          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                          ),
                         ),
                         subtitle: Text(
                           'See more',
-                          style: TextStyle(fontSize: 12, color: Colors.blueGrey),
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.blueGrey,
+                          ),
                         ),
                         trailing: Icon(Icons.arrow_forward),
                         onTap: () {},
                       ),
-                      if (viewModel.product?['type']?.contains('Bidding') ?? false) ...[
+                      if (viewModel.product?['type']?.contains('Bidding') ??
+                          false) ...[
                         ListTile(
                           title: Text(
                             'Bidding for this item',
@@ -198,13 +234,50 @@ class _ProductDetailState extends State<ProductDetail> {
                           ),
                           subtitle: Text(
                             'Starts at \$${getMinimumBid(viewModel) ?? 'N/A'}',
-                            style: TextStyle(fontSize: 12, color: Colors.blueGrey),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.blueGrey,
+                            ),
                           ),
                           trailing: Icon(Icons.arrow_forward),
                           onTap: () {
-                            FirestoreService().logFeatureUsage('button_view_bidders');
+                            FirestoreService().logFeatureUsage(
+                              'button_view_bidders',
+                            );
                             setState(() {
                               showBidders = true;
+                            });
+                          },
+                        ),
+                      ],
+                      if (viewModel.product?['type']?.contains('Rent') ??
+                          false) ...[
+                        ListTile(
+                          title: Text(
+                            'Rent offers for this item',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                            ),
+                          ),
+                          subtitle: Text(
+                            'Check who wants to rent this item',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.blueGrey,
+                            ),
+                          ),
+                          trailing: Icon(Icons.arrow_forward),
+                          onTap: () async {
+                            FirestoreService().logFeatureUsage(
+                              'button_view_rent_offers',
+                            );
+                            await viewModel.loadRentOffers();
+                            setState(() {
+                              showPlaceRentOffer = false;
+                              showPlaceBid = false;
+                              showBidders = false;
+                              showRentOfferers = true;
                             });
                           },
                         ),
