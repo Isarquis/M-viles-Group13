@@ -64,7 +64,7 @@ class NearbyProductsViewModel extends ChangeNotifier {
     final Uint8List bytes = data.buffer.asUint8List();
     final ui.Codec codec = await ui.instantiateImageCodec(
       bytes,
-      targetWidth: 100,
+      targetWidth: 150,
     );
     ui.FrameInfo? frameInfo;
     try {
