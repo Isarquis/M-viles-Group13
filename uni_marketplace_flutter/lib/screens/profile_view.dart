@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../components/product_card.dart';
 import '../viewmodels/profile_viewmodel.dart';
+import '../models/product_model.dart';
 
 class ProfileView extends StatefulWidget {
   final VoidCallback onDiscoverTapped;
@@ -28,7 +29,7 @@ class _ProfileViewState extends State<ProfileView> {
 
   @override
   Widget build(BuildContext context) {
-    String lastSoldImage = profile.lastSold?['imageUrl'] ?? profile.lastSold?['image'] ?? '';
+    String lastSoldImage = profile.lastSold?.image ?? '';
     return Scaffold(
       appBar: AppBar(title: Text('My Profile')),
       body: SingleChildScrollView(
@@ -72,12 +73,12 @@ class _ProfileViewState extends State<ProfileView> {
             profile.postedProducts.isNotEmpty
                 ? Row(
                   children:
-                      profile.postedProducts.map((p) {
-                        String imagePath = p['imageUrl'] ?? p['image'] ?? '';
+                      profile.postedProducts.map((Product p) {
+                        String imagePath = p.image ?? '';
                         return imagePath.isNotEmpty
                           ? ProductCard(
                               imagePath: imagePath,
-                              title: p['title'] ?? '',
+                              title: p.title ?? '',
                             )
                           : Container();
                       }).toList(),
@@ -90,9 +91,9 @@ class _ProfileViewState extends State<ProfileView> {
             ),
             profile.lastSold != null
                 ? ProductCard(
-                  imagePath: lastSoldImage,
-                  title: profile.lastSold?['title'] ?? '',
-                )
+                    imagePath: lastSoldImage,
+                    title: profile.lastSold?.title ?? '',
+                  )
                 : Text("No sales yet."),
             SizedBox(height: 24),
             Text(
@@ -103,12 +104,12 @@ class _ProfileViewState extends State<ProfileView> {
             profile.rentedProducts.isNotEmpty
                 ? Row(
                   children:
-                      profile.rentedProducts.map((p) {
-                        String imagePath = p['imageUrl'] ?? p['image'] ?? '';
+                      profile.rentedProducts.map((Product p) {
+                        String imagePath = p.image ?? '';
                         return imagePath.isNotEmpty
                           ? ProductCard(
                               imagePath: imagePath,
-                              title: p['title'] ?? '',
+                              title: p.title ?? '',
                             )
                           : Container();
                       }).toList(),
