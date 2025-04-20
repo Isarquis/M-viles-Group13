@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
+import 'dart:math';
 import '../viewmodels/nearby_products_viewmodel.dart';
 import '../widgets/selected_product_preview.dart';
 import '../viewmodels/profile_viewmodel.dart';
@@ -19,24 +20,60 @@ class _NearbyProductsMapState extends State<NearbyProductsMap> {
   @override
   void initState() {
     super.initState();
-    Future.microtask(() =>
-        Provider.of<NearbyProductsViewModel>(context, listen: false).loadNearbyProducts());
+    Future.microtask(
+      () =>
+          Provider.of<NearbyProductsViewModel>(
+            context,
+            listen: false,
+          ).loadNearbyProducts(),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final viewModel = Provider.of<NearbyProductsViewModel>(context);
+    if (viewModel.selectedProduct != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _mapController.getZoomLevel().then((zoom) {
+          final adjustedDelta = 0.01 / pow(2, zoom - 15);
+          _mapController.animateCamera(
+            CameraUpdate.newLatLng(
+              LatLng(
+                viewModel.selectedProduct!.latitude! - adjustedDelta,
+                viewModel.selectedProduct!.longitude!,
+              ),
+            ),
+          );
+        });
+      });
+    }
 
     return Scaffold(
       appBar: AppBar(title: const Text('Products close to you')),
       body: Stack(
         children: [
           GoogleMap(
-            onMapCreated: (controller) => _mapController = controller,
+            onMapCreated: (controller) {
+              _mapController = controller;
+              if (viewModel.currentLocation != null) {
+                _mapController.moveCamera(
+                  CameraUpdate.newLatLng(
+                    LatLng(
+                      viewModel.currentLocation!.latitude - 0.008,
+                      viewModel.currentLocation!.longitude,
+                    ),
+                  ),
+                );
+              }
+            },
             initialCameraPosition: CameraPosition(
-              target: viewModel.currentLocation != null
-                  ? LatLng(viewModel.currentLocation!.latitude, viewModel.currentLocation!.longitude)
-                  : const LatLng(4.7110, -74.0721),
+              target:
+                  viewModel.currentLocation != null
+                      ? LatLng(
+                        viewModel.currentLocation!.latitude,
+                        viewModel.currentLocation!.longitude,
+                      )
+                      : const LatLng(4.7110, -74.0721),
               zoom: 15,
             ),
             markers: viewModel.markers,
@@ -44,7 +81,9 @@ class _NearbyProductsMapState extends State<NearbyProductsMap> {
           ),
           if (viewModel.selectedProduct != null)
             FutureBuilder(
-              future: FirestoreService().getUser(viewModel.selectedProduct!.ownerId ?? ''),
+              future: FirestoreService().getUser(
+                viewModel.selectedProduct!.ownerId ?? '',
+              ),
               builder: (context, snapshot) {
                 if (!snapshot.hasData) {
                   return const Positioned(
@@ -74,14 +113,84 @@ class _NearbyProductsMapState extends State<NearbyProductsMap> {
                       ],
                     ),
                     child: Column(
-                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(viewModel.selectedProduct!.title ?? '', style: const TextStyle(fontWeight: FontWeight.bold)),
-                        Text(viewModel.selectedProduct!.description ?? ''),
-                        const SizedBox(height: 8),
-                        Text('Vendedor: ${userData['name'] ?? ''}'),
-                        Text('Email: ${userData['email'] ?? ''}'),
-                        Text('Teléfono: ${userData['phone'] ?? ''}'),
+                        const Text(
+                          'Sobre el producto',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 20,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    viewModel.selectedProduct!.title ?? '',
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    viewModel.selectedProduct!.description ?? '',
+                                    maxLines: 3,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(fontSize: 14),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.network(
+                                viewModel.selectedProduct!.image ?? '',
+                                height: 100,
+                                width: 100,
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        const Divider(),
+                        const SizedBox(height: 12),
+                        const Text(
+                          'Sobre el vendedor',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 20,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                userData['name'] ?? '',
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.network(
+                                userData['image'] ?? '',
+                                width: 100,
+                                height: 100,
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                          ],
+                        ),
                       ],
                     ),
                   ),
