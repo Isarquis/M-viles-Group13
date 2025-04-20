@@ -210,15 +210,13 @@ class FirestoreService {
     await _db.collection('logs').add({
       'type': 'feature_usage',
       'feature': feature,
-      'createdAt': FieldValue.serverTimestamp(),
+
+      'createdAt': FieldValue.serverTimestamp()
     });
   }
 
-  Future<void> logResponseTime(
-    DateTime requestedAt,
-    DateTime receivedAt,
-    DateTime showedAt,
-  ) async {
+  Future<void> logResponseTime(DateTime requestedAt, DateTime receivedAt, DateTime showedAt) async {
+
     await _db.collection('logs').add({
       'type': 'response_time',
       'requested_at': requestedAt.millisecondsSinceEpoch,
@@ -226,6 +224,7 @@ class FirestoreService {
       'showed_at': showedAt.millisecondsSinceEpoch,
     });
   }
+
 
   Future<void> placeRentOffer(Map<String, dynamic> rentData) async {
     await _db.collection('rents').add(rentData);
@@ -264,3 +263,4 @@ class FirestoreService {
     return combined;
   }
 }
+
