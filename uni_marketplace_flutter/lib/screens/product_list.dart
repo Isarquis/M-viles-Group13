@@ -140,8 +140,11 @@ class _ProductListState extends State<ProductList> {
     DateTime receivedAt = DateTime.now();
 
     setState(() {
-      _products = fetchedProducts;
-      _allProducts = fetchedProducts; // Se eliminó la conversión
+      final available = fetchedProducts
+          .where((p) => (p.status ?? '').toLowerCase() == 'available')
+          .toList();
+      _products = available;
+      _allProducts = List<Product>.from(available);
     });
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
