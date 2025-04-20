@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:uni_marketplace_flutter/services/firestore_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:uni_marketplace_flutter/models/product_model.dart';
 
 Map<String, dynamic> fallbackProduct = {
   'name': 'Cargando...',
@@ -179,14 +180,14 @@ class _ProductDetailState extends State<ProductDetail> {
   Future<void> loadProduct() async {
     var productData = await FirestoreService().getProductById(widget.productId);
     if (productData != null) {
-      setState(() {
+    setState(() {
         product = {
-          'name': productData['title'] ?? 'No Name',
-          'price': productData['price'].toString(),
-          'description': productData['description'] ?? 'No description',
-          'imageUrl': productData['image'] ?? 'assets/images/loading.gif',
-          'baseBid': productData['baseBid'] ?? '50.000',
-          'type': productData["type"] ?? [],
+          'name': productData.title ?? 'No Name',
+          'price': (productData.price ?? 0).toString(),
+          'description': productData.description ?? 'No description',
+          'imageUrl': productData.image ?? 'assets/images/loading.gif',
+          'baseBid': productData.baseBid ?? '50.000',
+          'type': productData.type ?? [],
         };
       });
     }

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'viewmodels/nearby_products_viewmodel.dart';
 import 'screens/product_detail.dart';
 import 'screens/product_list.dart';
 import 'screens/test_products_screen.dart';
@@ -6,6 +8,7 @@ import 'screens/test_products_screen.dart';
 import 'screens/profile_view.dart';
 
 import 'screens/post_product/post_product_screen.dart';
+import 'screens/nearby_products_map.dart';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -20,7 +23,12 @@ void main() async {
   } catch (e) {
     print('Error initializing Firebase: $e');
   }
-  runApp(const MyApp());
+  runApp(
+    ChangeNotifierProvider(
+      create: (_) => NearbyProductsViewModel(),
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -65,7 +73,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ProductList(),
       ProductDetail(productId: '60J3pS3bRnFjrksPd8hL'),
       PostProductScreen(),
-      Center(child: Text('Map')),
+      NearbyProductsMap(),
       ProfileView(onDiscoverTapped: () => setState(() => currentIndex = 1)),
     ];
 

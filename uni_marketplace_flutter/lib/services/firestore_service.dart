@@ -3,6 +3,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:http/http.dart' as http;
+import '../models/product_model.dart';
 
 class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -22,8 +23,20 @@ class FirestoreService {
   }
 
   Future<Map<String, dynamic>?> getUser(String userId) async {
-    var doc = await _db.collection('users').doc(userId).get();
-    return doc.exists ? doc.data() as Map<String, dynamic> : null;
+    try {
+      var doc = await _db.collection('users').doc(userId).get();
+      if (doc.exists) {
+        final data = doc.data() as Map<String, dynamic>?;
+        print("Usuario cargado: $userId => $data");
+        return data;
+      } else {
+        print("Usuario no encontrado: $userId");
+        return null;
+      }
+    } catch (e) {
+      print("Error al cargar usuario $userId: $e");
+      return null;
+    }
   }
 
   // PRODUCTS
@@ -62,24 +75,18 @@ class FirestoreService {
     }
   }
 
-  Future<List<Map<String, dynamic>>> getAllProducts() async {
+  Future<List<Product>> getAllProducts() async {
     var snapshot = await _db.collection('products').get();
-    return snapshot.docs.map((doc) {
-      var data = doc.data() as Map<String, dynamic>;
-      data['id'] = doc.id;
-      return data;
-    }).toList();
+    return snapshot.docs.map((doc) => Product.fromMap(doc.data(), doc.id)).toList();
   }
 
-  Future<List<Map<String, dynamic>>> getProductsByType(String type) async {
+  Future<List<Product>> getProductsByType(String type) async {
     var snapshot =
         await _db
             .collection('products')
             .where('type', arrayContains: type)
             .get();
-    return snapshot.docs
-        .map((doc) => doc.data() as Map<String, dynamic>)
-        .toList();
+    return snapshot.docs.map((doc) => Product.fromMap(doc.data(), doc.id)).toList();
   }
 
   Future<void> updateProductStatus(String productId, String status) async {
@@ -120,10 +127,9 @@ class FirestoreService {
         .toList();
   }
 
-  Future<Map<String, dynamic>?> getProductById(String id) async {
-    var doc =
-        await FirebaseFirestore.instance.collection('products').doc(id).get();
-    return doc.exists ? doc.data() : null;
+  Future<Product?> getProductById(String id) async {
+    var doc = await _db.collection('products').doc(id).get();
+    return doc.exists ? Product.fromMap(doc.data()!, doc.id) : null;
   }
 
   Future<List<Map<String, dynamic>>> getBiddersFromBids(
