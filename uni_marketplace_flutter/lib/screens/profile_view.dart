@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../components/product_card.dart';
 import '../viewmodels/profile_viewmodel.dart';
 import '../models/product_model.dart';
-
+import 'product_detail_view.dart';
 class ProfileView extends StatefulWidget {
   final VoidCallback onDiscoverTapped;
 
@@ -83,6 +83,14 @@ class _ProfileViewState extends State<ProfileView> {
                                 child: ProductCard(
                                   imagePath: imagePath,
                                   title: p.title ?? '',
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => ProductDetailView(product: p),
+                                      ),
+                                    );
+                                  },
                                 ),
                               )
                             : const SizedBox.shrink();

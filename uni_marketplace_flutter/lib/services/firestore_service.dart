@@ -27,14 +27,11 @@ class FirestoreService {
       var doc = await _db.collection('users').doc(userId).get();
       if (doc.exists) {
         final data = doc.data() as Map<String, dynamic>?;
-        print("Usuario cargado: $userId => $data");
         return data;
       } else {
-        print("Usuario no encontrado: $userId");
         return null;
       }
     } catch (e) {
-      print("Error al cargar usuario $userId: $e");
       return null;
     }
   }
@@ -96,6 +93,10 @@ class FirestoreService {
   // BIDS
   Future<void> placeBid(Map<String, dynamic> bidData) async {
     await _db.collection('bids').add(bidData);
+  }
+
+  Future<void> deleteBidById(String bidId) async {
+    await _db.collection('bids').doc(bidId).delete();
   }
 
   Future<List<Map<String, dynamic>>> getBidsByProduct(String productId) async {
@@ -160,6 +161,7 @@ class FirestoreService {
 
     for (var doc in snapshot.docs) {
       var bid = doc.data();
+      bid['id'] = doc.id;
       var bidderId = bid['bidder'];
       if (bidderId != null) {
         var userData = await getUser(bidderId);
@@ -206,5 +208,35 @@ class FirestoreService {
       'received_at': receivedAt.millisecondsSinceEpoch,
       'showed_at': showedAt.millisecondsSinceEpoch,
     });
+  }
+
+  Future<void> placeRentOffer(Map<String, dynamic> rentData) async {
+    await _db.collection('rents').add(rentData);
+  }
+  
+  Future<List<Map<String, dynamic>>> getRentOffersWithUsersByProduct(String productId) async {
+    var snapshot = await _db
+        .collection('rents')
+        .where('productId', isEqualTo: productId)
+        .get();
+  
+    List<Map<String, dynamic>> combined = [];
+  
+    for (var doc in snapshot.docs) {
+      var rent = doc.data();
+      rent['id'] = doc.id;
+      var renterId = rent['renter'];
+      if (renterId != null) {
+        var userData = await getUser(renterId);
+        if (userData != null) {
+          combined.add({'rent': rent, 'user': userData});
+        }
+      }
+    }
+  
+    combined.sort((a, b) =>
+        (b['rent']['price'] as int).compareTo(a['rent']['price'] as int));
+  
+    return combined;
   }
 }
