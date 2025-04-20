@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/firestore_service.dart';
+import 'package:uni_marketplace_flutter/models/product_model.dart';
 
 class ProfileViewModel {
   final String userId;
@@ -10,10 +11,10 @@ class ProfileViewModel {
   String phone = '';
   String imagePath = '';
 
-  List<Map<String, dynamic>> postedProducts = [];
-  List<Map<String, dynamic>> rentedProducts = [];
-  Map<String, dynamic>? lastSold;
-  List<Map<String, dynamic>> boughtProducts = [];
+  List<Product> postedProducts = [];
+  List<Product> rentedProducts = [];
+  Product? lastSold;
+  List<Product> boughtProducts = [];
 
   ProfileViewModel(this.userId);
 
@@ -28,22 +29,22 @@ class ProfileViewModel {
 
     final allProducts = await _firestoreService.getAllProducts();
     postedProducts = allProducts.where((p) =>
-      (p['ownerId']?.toString() ?? '').toLowerCase() == userId.toLowerCase() &&
-      (p['status']?.toString().toLowerCase() == 'available') &&
-      (p['type'] != null && (p['type'] as List).map((e) => e.toString().toLowerCase()).contains('buy'))
+      (p.ownerId?.toLowerCase() ?? '') == userId.toLowerCase() &&
+      (p.status?.toLowerCase() == 'available') &&
+      (p.type != null && p.type!.map((e) => e.toLowerCase()).contains('buy'))
     ).toList();
     print('Posted products: $postedProducts');
 
     rentedProducts = allProducts.where((p) =>
-      (p['ownerId']?.toString() ?? '').toLowerCase() == userId.toLowerCase() &&
-      (p['status']?.toString().toLowerCase() == 'available') &&
-      (p['type'] != null && (p['type'] as List).map((e) => e.toString().toLowerCase()).contains('rent'))
+      (p.ownerId?.toLowerCase() ?? '') == userId.toLowerCase() &&
+      (p.status?.toLowerCase() == 'available') &&
+      (p.type != null && p.type!.map((e) => e.toLowerCase()).contains('rent'))
     ).toList();
 
     final sold = allProducts.where((p) =>
-      (p['ownerId']?.toString() ?? '').toLowerCase() == userId.toLowerCase() &&
-      (p['status']?.toString().toLowerCase() == 'sold') &&
-      (p['type'] != null && (p['type'] as List).map((e) => e.toString().toLowerCase()).contains('buy'))
+      (p.ownerId?.toLowerCase() ?? '') == userId.toLowerCase() &&
+      (p.status?.toLowerCase() == 'sold') &&
+      (p.type != null && p.type!.map((e) => e.toLowerCase()).contains('buy'))
     ).toList();
     if (sold.isNotEmpty) {
       lastSold = sold.first;

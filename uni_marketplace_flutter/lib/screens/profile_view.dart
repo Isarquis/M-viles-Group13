@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import '../components/product_card.dart';
 import '../viewmodels/profile_viewmodel.dart';
-
+import '../models/product_model.dart';
+import 'product_detail_view.dart';
 class ProfileView extends StatefulWidget {
   final VoidCallback onDiscoverTapped;
 
@@ -28,11 +29,11 @@ class _ProfileViewState extends State<ProfileView> {
 
   @override
   Widget build(BuildContext context) {
-    String lastSoldImage = profile.lastSold?['imageUrl'] ?? profile.lastSold?['image'] ?? '';
+    String lastSoldImage = profile.lastSold?.image ?? '';
     return Scaffold(
-      appBar: AppBar(title: Text('My Profile')),
+      appBar: AppBar(title: const Text('My Profile')),
       body: SingleChildScrollView(
-        padding: EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -40,19 +41,20 @@ class _ProfileViewState extends State<ProfileView> {
               children: [
                 CircleAvatar(
                   radius: 30,
-                  backgroundImage:
-                      profile.imagePath.isNotEmpty
-                          ? NetworkImage(profile.imagePath)
-                          : null,
-                  child: profile.imagePath.isEmpty ? Icon(Icons.person) : null,
+                  backgroundImage: profile.imagePath.isNotEmpty
+                      ? NetworkImage(profile.imagePath)
+                      : null,
+                  child: profile.imagePath.isEmpty
+                      ? const Icon(Icons.person)
+                      : null,
                 ),
-                SizedBox(width: 12),
+                const SizedBox(width: 12),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       profile.name,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
@@ -63,59 +65,88 @@ class _ProfileViewState extends State<ProfileView> {
                 ),
               ],
             ),
-            SizedBox(height: 24),
-            Text(
+            const SizedBox(height: 24),
+            const Text(
               'Posted Products',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             profile.postedProducts.isNotEmpty
-                ? Row(
-                  children:
-                      profile.postedProducts.map((p) {
-                        String imagePath = p['imageUrl'] ?? p['image'] ?? '';
+                ? SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: profile.postedProducts.map((Product p) {
+                        String imagePath = p.image ?? '';
                         return imagePath.isNotEmpty
-                          ? ProductCard(
-                              imagePath: imagePath,
-                              title: p['title'] ?? '',
-                            )
-                          : Container();
+                            ? SizedBox(
+                                height: 158,
+                                child: ProductCard(
+                                  imagePath: imagePath,
+                                  title: p.title ?? '',
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => ProductDetailView(product: p),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              )
+                            : const SizedBox.shrink();
                       }).toList(),
-                )
-                : CircularProgressIndicator(),
-            SizedBox(height: 24),
-            Text(
+                    ),
+                  )
+                : const CircularProgressIndicator(),
+            const SizedBox(height: 24),
+            const Text(
               'Last Sold',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
+            const SizedBox(height: 8),
             profile.lastSold != null
-                ? ProductCard(
-                  imagePath: lastSoldImage,
-                  title: profile.lastSold?['title'] ?? '',
-                )
-                : Text("No sales yet."),
-            SizedBox(height: 24),
-            Text(
+                ? SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        SizedBox(
+                          height: 158,
+                          child: ProductCard(
+                            imagePath: lastSoldImage,
+                            title: profile.lastSold?.title ?? '',
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                : const Text("No sales yet."),
+            const SizedBox(height: 24),
+            const Text(
               'Currently Rented',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             profile.rentedProducts.isNotEmpty
-                ? Row(
-                  children:
-                      profile.rentedProducts.map((p) {
-                        String imagePath = p['imageUrl'] ?? p['image'] ?? '';
+                ? SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: profile.rentedProducts.map((Product p) {
+                        String imagePath = p.image ?? '';
                         return imagePath.isNotEmpty
-                          ? ProductCard(
-                              imagePath: imagePath,
-                              title: p['title'] ?? '',
-                            )
-                          : Container();
+                            ? SizedBox(
+                                height: 158,
+                                child: ProductCard(
+                                  imagePath: imagePath,
+                                  title: p.title ?? '',
+                                ),
+                              )
+                            : const SizedBox.shrink();
                       }).toList(),
-                )
-                : CircularProgressIndicator(),
-            SizedBox(height: 24),
-            Text(
+                    ),
+                  )
+                : const CircularProgressIndicator(),
+            const SizedBox(height: 24),
+            const Text(
               'Last Bought',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),

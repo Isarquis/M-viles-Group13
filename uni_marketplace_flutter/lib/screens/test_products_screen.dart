@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:uni_marketplace_flutter/services/firestore_service.dart';
+import 'package:uni_marketplace_flutter/models/product_model.dart';
 
 class TestProductsScreen extends StatefulWidget {
   @override
@@ -8,10 +9,10 @@ class TestProductsScreen extends StatefulWidget {
 
 class _TestProductsScreenState extends State<TestProductsScreen> {
   final FirestoreService _firestoreService = FirestoreService();
-  List<Map<String, dynamic>> products = [];
+  List<Product> products = [];
 
   void fetchProducts() async {
-    var result = await _firestoreService.getAllProducts();
+    List<Product> result = await _firestoreService.getAllProducts();
     setState(() {
       products = result;
     });
@@ -30,21 +31,21 @@ class _TestProductsScreenState extends State<TestProductsScreen> {
       body: ListView.builder(
         itemCount: products.length,
         itemBuilder: (context, index) {
-          var product = products[index];
+          Product product = products[index];
           return Card(
             margin: EdgeInsets.all(8),
             child: ListTile(
-              leading: product['imageUrl'] != null
-                  ? Image.network(product['imageUrl'], width: 50, height: 50, fit: BoxFit.cover)
-                  : Icon(Icons.image_not_supported),
-              title: Text(product['title']?.toString() ?? 'Sin título'),
+              leading: (product.image != null && product.image!.isNotEmpty)
+                  ? Image.network(product.image!, width: 50, height: 50, fit: BoxFit.cover)
+                  : const Icon(Icons.image_not_supported),
+              title: Text(product.title ?? 'Sin título'),
               subtitle: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Precio: ${product['price']?.toString() ?? 'Sin precio'} COP'),
-                  Text('Descripción: ${product['description'] ?? 'Sin descripción'}'),
-                  Text('Estado: ${product['status'] ?? 'Sin estado'}'),
-                  Text('Tipo: ${(product['type'] as List?)?.join(", ") ?? 'Sin tipo'}'),
+                  Text('Precio: ${product.price?.toString() ?? 'Sin precio'} COP'),
+                  Text('Descripción: ${product.description ?? 'Sin descripción'}'),
+                  Text('Estado: ${product.status ?? 'Sin estado'}'),
+                  Text('Tipo: ${product.type?.join(", ") ?? 'Sin tipo'}'),
                 ],
               ),
             ),
