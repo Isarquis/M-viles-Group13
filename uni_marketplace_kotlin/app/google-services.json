@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "635091240503",
+    "project_id": "uni-market-na1",
+    "storage_bucket": "uni-market-na1.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:635091240503:android:292e3f619fa77399ada1b2",
+        "android_client_info": {
+          "package_name": "com.example.uni_matketplace_kotlin"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA3Av6nNxnG3edxqJhBx3xxwYbCSieM48g"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

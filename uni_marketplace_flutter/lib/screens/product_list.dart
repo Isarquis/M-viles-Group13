@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:uni_marketplace_flutter/screens/product_detail.dart';
 import 'package:uni_marketplace_flutter/services/firestore_service.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:uni_marketplace_flutter/models/product_model.dart';
 
 class SearchBar extends StatefulWidget {
   final TextEditingController controller;
-  final List<Map<String, dynamic>> products;
-  final Function(List<Map<String, dynamic>>) onSearchResult;
+  final List<Product> products;
+  final Function(List<Product>) onSearchResult;
 
   const SearchBar({
     required this.controller,
@@ -23,12 +25,12 @@ class _SearchBarState extends State<SearchBar> {
 
   @override
   Widget build(BuildContext context) {
-    List<Map<String, dynamic>> suggestions =
+    List<Product> suggestions =
         widget.controller.text.isEmpty
             ? []
             : widget.products
                 .where(
-                  (p) => p["title"].toLowerCase().contains(
+                  (p) => (p.title ?? '').toLowerCase().contains(
                     widget.controller.text.toLowerCase(),
                   ),
                 )
@@ -64,7 +66,11 @@ class _SearchBarState extends State<SearchBar> {
                   if (widget.controller.text.isEmpty) {
                     widget.onSearchResult([]);
                   } else if (suggestions.isNotEmpty) {
-                    _firestoreService.logFeatureUsage('search${widget.controller.text}');
+
+                    _firestoreService.logFeatureUsage(
+                      'search${widget.controller.text}',
+                    );
+
                     widget.onSearchResult([suggestions.first]);
                   }
                 },
@@ -92,9 +98,9 @@ class _SearchBarState extends State<SearchBar> {
         const SizedBox(height: 8),
         ...suggestions.map(
           (s) => ListTile(
-            title: Text(s["title"]),
+            title: Text(s.title ?? ''),
             onTap: () {
-              widget.controller.text = s["title"];
+              widget.controller.text = s.title ?? '';
               setState(() {});
             },
           ),
@@ -120,14 +126,8 @@ class _ProductListState extends State<ProductList> {
   final List<String> _categories = ["Select", "Math", "Science", "Tech"];
 
   final FirestoreService _firestoreService = FirestoreService();
-  List<Map<String, dynamic>> _products = [];
-  List<Map<String, dynamic>> _allProducts = [];
-  final List<String> _localImages = [
-    "assets/images/ProbabilidadYEstadistica.jpg",
-    "assets/images/calculadora.png",
-    "assets/images/algoritmos.png",
-    "assets/images/glasses.webp",
-  ];
+  List<Product> _products = [];
+  List<Product> _allProducts = [];
 
   @override
   void initState() {
@@ -142,8 +142,16 @@ class _ProductListState extends State<ProductList> {
     DateTime receivedAt = DateTime.now();
 
     setState(() {
-      _products = fetchedProducts;
-      _allProducts = List<Map<String, dynamic>>.from(fetchedProducts);
+      final available = fetchedProducts
+          .where((p) => (p.status ?? '').toLowerCase() == 'available')
+          .toList();
+      _products = available;
+      _allProducts = List<Product>.from(available);
+    });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      DateTime showedAt = DateTime.now();
+      _firestoreService.logResponseTime(requestedAt, receivedAt, showedAt);
     });
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -252,7 +260,7 @@ class _ProductListState extends State<ProductList> {
             onSearchResult: (result) {
               setState(() {
                 if (result.isEmpty) {
-                  _products = List<Map<String, dynamic>>.from(_allProducts);
+                  _products = List<Product>.from(_allProducts);
                 } else {
                   _products = result;
                 }
@@ -275,14 +283,14 @@ class _ProductListState extends State<ProductList> {
       );
     }
 
-    List<Map<String, dynamic>> filteredProducts =
+    List<Product> filteredProducts =
         _products.where((product) {
           bool matchesCategory =
               _selectedCategory == "Select" ||
-              product["category"] == _selectedCategory;
+              product.category == _selectedCategory;
           bool matchesType =
               _selectedFilter == "All" ||
-              product["type"].contains(_selectedFilter);
+              (product.type != null && product.type!.contains(_selectedFilter));
           return (_selectedFilter == "All" ? true : matchesType) &&
               matchesCategory;
         }).toList();
@@ -330,14 +338,20 @@ class _ProductListState extends State<ProductList> {
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(12),
                       child:
-                          product["image"].startsWith('http')
-                              ? Image.network(
-                                product["image"],
+                          (product.image ?? '').startsWith('http')
+                              ? CachedNetworkImage(
+                              imageUrl: product.image ?? '',
                                 fit: BoxFit.contain,
                                 height: 200,
+                                placeholder:
+                                    (context, url) =>
+                                        const CircularProgressIndicator(),
+                                errorWidget:
+                                    (context, url, error) =>
+                                        const Icon(Icons.error),
                               )
                               : Image.asset(
-                                product["image"],
+                                product.image ?? '',
                                 fit: BoxFit.contain,
                                 height: 200,
                               ),
@@ -350,7 +364,7 @@ class _ProductListState extends State<ProductList> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        product["title"],
+                        product.title ?? '',
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
@@ -361,7 +375,7 @@ class _ProductListState extends State<ProductList> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            "\$${product["price"]} COP",
+                            "\$${product.price} COP",
                             style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 16,
@@ -374,9 +388,8 @@ class _ProductListState extends State<ProductList> {
                                 context,
                                 MaterialPageRoute(
                                   builder:
-                                      (context) => ProductDetail(
-                                        productId: product["id"],
-                                      ),
+                                      (context) =>
+                                          ProductDetail(productId: product.id ),
                                 ),
                               );
                             },

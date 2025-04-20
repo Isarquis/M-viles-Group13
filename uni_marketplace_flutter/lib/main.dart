@@ -1,7 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'viewmodels/nearby_products_viewmodel.dart';
 import 'screens/product_detail.dart';
 import 'screens/product_list.dart';
 import 'screens/test_products_screen.dart';
+
+import 'screens/profile_view.dart';
+
+import 'screens/post_product/post_product_screen.dart';
+import 'screens/nearby_products_map.dart';
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'widgets/custom_navbar.dart';
@@ -9,8 +17,18 @@ import '../services/firestore_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
-  runApp(const MyApp());
+  try {
+    await Firebase.initializeApp();
+
+  } catch (e) {
+
+  }
+  runApp(
+    ChangeNotifierProvider(
+      create: (_) => NearbyProductsViewModel(),
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -21,6 +39,20 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Uni Marketplace',
       debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        brightness: Brightness.light,
+        scaffoldBackgroundColor: Colors.white,
+        primarySwatch: Colors.grey,
+        appBarTheme: AppBarTheme(
+          backgroundColor: Colors.white,
+          foregroundColor: Colors.black,
+          elevation: 0,
+        ),
+        colorScheme: ColorScheme.light(
+          primary: Colors.black,
+          secondary: Colors.green,
+        ),
+      ),
       home: const HomeScreen(),
     );
   }
@@ -37,17 +69,28 @@ class _HomeScreenState extends State<HomeScreen> {
   int currentIndex = 0;
   final FirestoreService _firestoreService = FirestoreService();
 
+
   final List<Widget> screens = [
-    Center(child: Text('Home')), 
+    Center(child: Text('Home')),
     ProductList(),
     ProductDetail(productId: '60J3pS3bRnFjrksPd8hL'),
-    TestProductsScreen(),
+    PostProductScreen(),
     Center(child: Text('Map')),
     Center(child: Text('Profile')),
   ];
 
+
   @override
   Widget build(BuildContext context) {
+    final screens = [
+      Center(child: Text('Home')),
+      ProductList(),
+      ProductDetail(productId: '60J3pS3bRnFjrksPd8hL'),
+      PostProductScreen(),
+      NearbyProductsMap(),
+      ProfileView(onDiscoverTapped: () => setState(() => currentIndex = 1)),
+    ];
+
     return Scaffold(
       body: screens[currentIndex],
       bottomNavigationBar: CustomNavBar(
