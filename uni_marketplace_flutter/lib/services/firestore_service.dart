@@ -3,6 +3,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:http/http.dart' as http;
+import '../models/product_model.dart';
 
 class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -22,8 +23,17 @@ class FirestoreService {
   }
 
   Future<Map<String, dynamic>?> getUser(String userId) async {
-    var doc = await _db.collection('users').doc(userId).get();
-    return doc.exists ? doc.data() as Map<String, dynamic> : null;
+    try {
+      var doc = await _db.collection('users').doc(userId).get();
+      if (doc.exists) {
+        final data = doc.data() as Map<String, dynamic>?;
+        return data;
+      } else {
+        return null;
+      }
+    } catch (e) {
+      return null;
+    }
   }
 
   // PRODUCTS
@@ -62,24 +72,18 @@ class FirestoreService {
     }
   }
 
-  Future<List<Map<String, dynamic>>> getAllProducts() async {
+  Future<List<Product>> getAllProducts() async {
     var snapshot = await _db.collection('products').get();
-    return snapshot.docs.map((doc) {
-      var data = doc.data() as Map<String, dynamic>;
-      data['id'] = doc.id;
-      return data;
-    }).toList();
+    return snapshot.docs.map((doc) => Product.fromMap(doc.data(), doc.id)).toList();
   }
 
-  Future<List<Map<String, dynamic>>> getProductsByType(String type) async {
+  Future<List<Product>> getProductsByType(String type) async {
     var snapshot =
         await _db
             .collection('products')
             .where('type', arrayContains: type)
             .get();
-    return snapshot.docs
-        .map((doc) => doc.data() as Map<String, dynamic>)
-        .toList();
+    return snapshot.docs.map((doc) => Product.fromMap(doc.data(), doc.id)).toList();
   }
 
   Future<void> updateProductStatus(String productId, String status) async {
@@ -89,6 +93,10 @@ class FirestoreService {
   // BIDS
   Future<void> placeBid(Map<String, dynamic> bidData) async {
     await _db.collection('bids').add(bidData);
+  }
+
+  Future<void> deleteBidById(String bidId) async {
+    await _db.collection('bids').doc(bidId).delete();
   }
 
   Future<List<Map<String, dynamic>>> getBidsByProduct(String productId) async {
@@ -120,10 +128,9 @@ class FirestoreService {
         .toList();
   }
 
-  Future<Map<String, dynamic>?> getProductById(String id) async {
-    var doc =
-        await FirebaseFirestore.instance.collection('products').doc(id).get();
-    return doc.exists ? doc.data() : null;
+  Future<Product?> getProductById(String id) async {
+    var doc = await _db.collection('products').doc(id).get();
+    return doc.exists ? Product.fromMap(doc.data()!, doc.id) : null;
   }
 
   Future<List<Map<String, dynamic>>> getBiddersFromBids(
@@ -154,6 +161,7 @@ class FirestoreService {
 
     for (var doc in snapshot.docs) {
       var bid = doc.data();
+      bid['id'] = doc.id;
       var bidderId = bid['bidder'];
       if (bidderId != null) {
         var userData = await getUser(bidderId);
@@ -200,5 +208,35 @@ class FirestoreService {
       'received_at': receivedAt.millisecondsSinceEpoch,
       'showed_at': showedAt.millisecondsSinceEpoch,
     });
+  }
+
+  Future<void> placeRentOffer(Map<String, dynamic> rentData) async {
+    await _db.collection('rents').add(rentData);
+  }
+  
+  Future<List<Map<String, dynamic>>> getRentOffersWithUsersByProduct(String productId) async {
+    var snapshot = await _db
+        .collection('rents')
+        .where('productId', isEqualTo: productId)
+        .get();
+  
+    List<Map<String, dynamic>> combined = [];
+  
+    for (var doc in snapshot.docs) {
+      var rent = doc.data();
+      rent['id'] = doc.id;
+      var renterId = rent['renter'];
+      if (renterId != null) {
+        var userData = await getUser(renterId);
+        if (userData != null) {
+          combined.add({'rent': rent, 'user': userData});
+        }
+      }
+    }
+  
+    combined.sort((a, b) =>
+        (b['rent']['price'] as int).compareTo(a['rent']['price'] as int));
+  
+    return combined;
   }
 }

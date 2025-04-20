@@ -3,16 +3,20 @@ import 'package:flutter/material.dart';
 class ProductCard extends StatelessWidget {
   final String imagePath;
   final String title;
+  final VoidCallback? onTap;
 
   const ProductCard({
     Key? key,
     required this.imagePath,
     required this.title,
+    this.onTap,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return InkWell(
+      onTap: onTap,
+      child: Container(
       width: 120,
       margin: EdgeInsets.symmetric(horizontal: 8),
       padding: EdgeInsets.all(8),
@@ -35,6 +39,6 @@ class ProductCard extends StatelessWidget {
           ),
         ],
       ),
-    );
+    ));
   }
 }
