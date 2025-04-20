@@ -44,10 +44,13 @@ class _ProductDetailState extends State<ProductDetail> {
   TextEditingController bidController = TextEditingController();
   String? bidError;
 
+
   @override
   void initState() {
     super.initState();
+
     FirestoreService().logFeatureUsage('screen_product_detail');
+
   }
 
   int getMinimumBid(ProductDetailViewModel viewModel) {
@@ -59,7 +62,9 @@ class _ProductDetailState extends State<ProductDetail> {
   }
 
   void handleAction(String type) {
+
     FirestoreService().logFeatureUsage('button_$type');
+
     if (type == 'Bidding') {
       setState(() {
         showPlaceBid = true;
@@ -289,6 +294,7 @@ class _ProductDetailState extends State<ProductDetail> {
             ),
           );
         },
+
       ),
     );
   }

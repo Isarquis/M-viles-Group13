@@ -66,9 +66,11 @@ class _SearchBarState extends State<SearchBar> {
                   if (widget.controller.text.isEmpty) {
                     widget.onSearchResult([]);
                   } else if (suggestions.isNotEmpty) {
+
                     _firestoreService.logFeatureUsage(
                       'search${widget.controller.text}',
                     );
+
                     widget.onSearchResult([suggestions.first]);
                   }
                 },
@@ -145,6 +147,11 @@ class _ProductListState extends State<ProductList> {
           .toList();
       _products = available;
       _allProducts = List<Product>.from(available);
+    });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      DateTime showedAt = DateTime.now();
+      _firestoreService.logResponseTime(requestedAt, receivedAt, showedAt);
     });
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
