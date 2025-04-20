@@ -35,7 +35,7 @@ class _NearbyProductsMapState extends State<NearbyProductsMap> {
     if (viewModel.selectedProduct != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _mapController.getZoomLevel().then((zoom) {
-          final adjustedDelta = 0.01 / pow(2, zoom - 15);
+          final adjustedDelta = 0.01 / pow(2, zoom - 14);
           _mapController.animateCamera(
             CameraUpdate.newLatLng(
               LatLng(
