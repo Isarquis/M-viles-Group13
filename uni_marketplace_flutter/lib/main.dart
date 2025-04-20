@@ -19,9 +19,9 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   try {
     await Firebase.initializeApp();
-    print('Firebase initialized successfully');
+
   } catch (e) {
-    print('Error initializing Firebase: $e');
+
   }
   runApp(
     ChangeNotifierProvider(
@@ -39,6 +39,20 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Uni Marketplace',
       debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        brightness: Brightness.light,
+        scaffoldBackgroundColor: Colors.white,
+        primarySwatch: Colors.grey,
+        appBarTheme: AppBarTheme(
+          backgroundColor: Colors.white,
+          foregroundColor: Colors.black,
+          elevation: 0,
+        ),
+        colorScheme: ColorScheme.light(
+          primary: Colors.black,
+          secondary: Colors.green,
+        ),
+      ),
       home: const HomeScreen(),
     );
   }
