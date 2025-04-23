@@ -5,13 +5,14 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 import 'screens/auth/login_page.dart';
 import 'screens/auth/register_page.dart';
-import 'screens/profile_view.dart';
-import 'screens/product_detail.dart';
+import 'screens/home_page.dart';
 import 'screens/product_list.dart';
+import 'screens/product_detail.dart';
 import 'screens/post_product/post_product_screen.dart';
 import 'screens/nearby_products_map.dart';
-import 'widgets/custom_navbar.dart';
+import 'screens/profile_view.dart';
 
+import 'widgets/custom_navbar.dart';
 import 'viewmodels/auth_viewmodel.dart';
 import 'viewmodels/nearby_products_viewmodel.dart';
 import 'services/firestore_service.dart';
@@ -19,6 +20,7 @@ import 'services/firestore_service.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
+
   runApp(
     MultiProvider(
       providers: [
@@ -75,43 +77,19 @@ class _HomeScreenState extends State<HomeScreen> {
   int currentIndex = 0;
   final FirestoreService _firestoreService = FirestoreService();
 
+  final List<Widget> _screens = [
+    const HomePage(),
+    const ProductList(),
+    const ProductDetail(productId: '60J3pS3bRnFjrksPd8hL'),
+    const PostProductScreen(),
+    const NearbyProductsMap(),
+    ProfileView(onDiscoverTapped: () {}),
+  ];
+
   @override
   Widget build(BuildContext context) {
-    final screens = [
-      Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text('Home'),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Welcome to Uni Marketplace!')),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1F7A8C),
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-              child: const Text(
-                'Press Me!',
-                style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
-              ),
-            ),
-          ],
-        ),
-      ),
-      const ProductList(),
-      const ProductDetail(productId: '60J3pS3bRnFjrksPd8hL'),
-      const PostProductScreen(),
-      const NearbyProductsMap(),
-      ProfileView(onDiscoverTapped: () => setState(() => currentIndex = 1)),
-    ];
-
     return Scaffold(
-      body: screens[currentIndex],
+    body: _screens[currentIndex],
       bottomNavigationBar: CustomNavBar(
         selectedIndex: currentIndex,
         onItemTapped: (index) {
