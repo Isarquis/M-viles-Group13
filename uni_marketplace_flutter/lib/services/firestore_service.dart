@@ -264,3 +264,20 @@ class FirestoreService {
   }
 }
 
+Future<List<Product>> getProductsMatchingTerms(List<String> terms) async {
+  Set<Product> results = {};
+
+  for (final term in terms) {
+    final query = await FirebaseFirestore.instance
+        .collection('products')
+        .where('title', isGreaterThanOrEqualTo: term)
+        .where('title', isLessThanOrEqualTo: term + '\uf8ff')
+        .get();
+
+    results.addAll(query.docs.map((doc) => Product.fromFirestore(doc)));
+  }
+
+  return results.toList();
+}
+
+

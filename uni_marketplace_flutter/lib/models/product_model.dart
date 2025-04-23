@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class Product {
   final String id;
   final String? title;
@@ -62,5 +64,9 @@ class Product {
       'type': type,
       'createdAt': createdAt,
     };
+  }
+    factory Product.fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    return Product.fromMap(data, doc.id);
   }
 }
