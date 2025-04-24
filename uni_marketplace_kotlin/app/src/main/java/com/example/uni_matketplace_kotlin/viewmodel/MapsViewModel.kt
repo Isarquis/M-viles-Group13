@@ -26,7 +26,7 @@ class MapsViewModel(
     private val _distanceToClosestUser = MutableLiveData<Float>()
     val distanceToClosestUser: LiveData<Float> = _distanceToClosestUser
 
-    fun loadClosestProduct(currentLocation: LatLng, maxDistance: Float = 2000f) {
+    fun loadClosestProduct(currentLocation: LatLng, maxDistance: Float = 400f) {
         viewModelScope.launch {
             val result = userRepository.getClosestUserWithProduct(currentLocation, maxDistance, productRepository)
 
@@ -42,20 +42,9 @@ class MapsViewModel(
         }
     }
 
-    fun loadNearbyUsers(currentLocation: LatLng, maxDistance: Float = 2000f) {
+    fun loadNearbyUsers(currentLocation: LatLng, maxDistance: Float = 400f) {
         viewModelScope.launch {
-            val users = userRepository.getAllUsers()
-
-            val nearbyUsersWithProducts = users.mapNotNull { user ->
-                val location = user.location
-                if (location?.latitude != null && location.longitude != null) {
-                    val distance = calculateDistance(currentLocation, LatLng(location.latitude, location.longitude))
-                    if (distance <= maxDistance && productRepository.userHasProducts(user.id)) {
-                        user
-                    } else null
-                } else null
-            }
-
+            val nearbyUsersWithProducts = userRepository.getNearbyUsersWithProducts(currentLocation, maxDistance, productRepository)
             _nearbyUsers.postValue(nearbyUsersWithProducts)
         }
     }
