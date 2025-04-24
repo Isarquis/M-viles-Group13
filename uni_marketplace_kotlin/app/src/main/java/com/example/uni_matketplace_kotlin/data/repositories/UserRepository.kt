@@ -64,4 +64,22 @@ class UserRepository {
         Location.distanceBetween(start.latitude, start.longitude, end.latitude, end.longitude, results)
         return results[0]
     }
+    suspend fun getNearbyUsersWithProducts(
+        currentLocation: LatLng,
+        maxDistance: Float,
+        productRepository: ProductRepository
+    ): List<User> {
+        val users = getAllUsers()
+        return users.mapNotNull { user ->
+            val loc = user.location
+            if (loc?.latitude != null && loc.longitude != null) {
+                val userLatLng = LatLng(loc.latitude, loc.longitude)
+                val distance = calculateDistance(currentLocation, userLatLng)
+                if (distance <= maxDistance && productRepository.userHasProducts(user.id)) {
+                    user
+                } else null
+            } else null
+        }
+    }
+
 }
