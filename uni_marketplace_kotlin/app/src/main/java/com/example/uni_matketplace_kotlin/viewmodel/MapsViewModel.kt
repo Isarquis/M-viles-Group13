@@ -44,18 +44,7 @@ class MapsViewModel(
 
     fun loadNearbyUsers(currentLocation: LatLng, maxDistance: Float = 400f) {
         viewModelScope.launch {
-            val users = userRepository.getAllUsers()
-
-            val nearbyUsersWithProducts = users.mapNotNull { user ->
-                val location = user.location
-                if (location?.latitude != null && location.longitude != null) {
-                    val distance = calculateDistance(currentLocation, LatLng(location.latitude, location.longitude))
-                    if (distance <= maxDistance && productRepository.userHasProducts(user.id)) {
-                        user
-                    } else null
-                } else null
-            }
-
+            val nearbyUsersWithProducts = userRepository.getNearbyUsersWithProducts(currentLocation, maxDistance, productRepository)
             _nearbyUsers.postValue(nearbyUsersWithProducts)
         }
     }
