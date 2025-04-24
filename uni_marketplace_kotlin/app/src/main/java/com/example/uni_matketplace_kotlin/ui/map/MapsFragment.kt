@@ -12,9 +12,9 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
-import com.bumptech.glide.Glide
 import com.example.uni_matketplace_kotlin.R
 import com.example.uni_matketplace_kotlin.databinding.FragmentMapsBinding
+import com.example.uni_matketplace_kotlin.data.location.LocationHelper
 import com.example.uni_matketplace_kotlin.viewmodel.MapsViewModel
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.CameraUpdateFactory
@@ -72,16 +72,32 @@ class MapsFragment : Fragment(), OnMapReadyCallback, GoogleMap.OnMyLocationButto
 
 
     private fun moverCamaraALaUbicacion(callback: (LatLng) -> Unit) {
-        if (isPermissionsGranted()) {
+        if (!isPermissionsGranted()) return
+
+        if (LocationHelper.isLocationEnabled(requireContext())) {
             val fusedLocationClient = LocationServices.getFusedLocationProviderClient(requireContext())
             fusedLocationClient.lastLocation.addOnSuccessListener { location: Location? ->
                 location?.let {
                     val latLng = LatLng(it.latitude, it.longitude)
+
+                    // Save for offline use
+                    LocationHelper.saveLastLocation(requireContext(), it)
+                    mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, 15f))
+
                     callback(latLng)
                 }
             }
+        } else {
+            val savedLatLng = LocationHelper.getLastSavedLocation(requireContext())
+            if (savedLatLng != null) {
+                Toast.makeText(requireContext(), "Mostrando última ubicación conocida", Toast.LENGTH_SHORT).show()
+                callback(savedLatLng)
+            } else {
+                Toast.makeText(requireContext(), "Ubicación no disponible", Toast.LENGTH_SHORT).show()
+            }
         }
     }
+
 
     private fun isPermissionsGranted(): Boolean {
         return ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
@@ -143,6 +159,9 @@ class MapsFragment : Fragment(), OnMapReadyCallback, GoogleMap.OnMyLocationButto
             if (product != null) {
                 binding.productName.text = "Producto: ${product.title}"
                 binding.userPrice.text = "Precio: ${product.price}"
+                mapsViewModel.distanceToClosestUser.observe(viewLifecycleOwner) { distance ->
+                    binding.userDistance.text = "Distance to you: ${"%.0f".format(distance)}m"
+                }
             } else {
 
                 closestUserMarker?.remove()
@@ -154,9 +173,6 @@ class MapsFragment : Fragment(), OnMapReadyCallback, GoogleMap.OnMyLocationButto
                 binding.userName.text = ""
                 binding.userDistance.text = ""
             }
-        }
-        mapsViewModel.distanceToClosestUser.observe(viewLifecycleOwner) { distance ->
-            binding.userDistance.text = "Distance to you: ${"%.0f".format(distance)}m"
         }
     }
 
