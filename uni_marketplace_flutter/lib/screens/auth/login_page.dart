@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../viewmodels/auth_viewmodel.dart';
+import 'package:uni_marketplace_flutter/screens/profile_view.dart';
+import 'package:uni_marketplace_flutter/main.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 
 class LoginPage extends StatelessWidget {
   final _formKey = GlobalKey<FormState>();
@@ -51,15 +54,59 @@ class LoginPage extends StatelessWidget {
                 ElevatedButton(
                   style: _buttonStyle(),
                   onPressed: viewModel.loading
-                      ? null
-                      : () async {
-                          if (_formKey.currentState!.validate()) {
-                            final user = await viewModel.login(_email.text, _password.text);
-                            if (user != null) {
-                              Navigator.pushReplacementNamed(context, '/home');
+                        ? null
+                        : () async {
+                            if (_formKey.currentState!.validate()) {
+                              final connectivityResult = await Connectivity().checkConnectivity();
+                              if (connectivityResult == ConnectivityResult.none) {
+                                showDialog(
+                                  context: context,
+                                  builder: (context) => AlertDialog(
+                                    title: const Text('No Connection'),
+                                    content: const Text('You are offline. Please connect to the internet to login.'),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () => Navigator.pop(context),
+                                        child: const Text('OK'),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                                return;
+                              }
+
+                              viewModel.setLoading(true);
+
+                              try {
+                                final user = await viewModel.login(_email.text, _password.text);
+                                if (user != null) {
+                                  Navigator.pushReplacement(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => HomeScreen(userId: user.uid),
+                                    ),
+                                  );
+                                }
+                              } catch (error) {
+                                showDialog(
+                                  context: context,
+                                  builder: (context) => AlertDialog(
+                                    title: const Text('Login Failed'),
+                                    content: Text(error.toString()),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () => Navigator.pop(context),
+                                        child: const Text('OK'),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              } finally {
+                                viewModel.setLoading(false);
+                              }
                             }
-                          }
-                        },
+                          },
+
                   child: viewModel.loading
                       ? const CircularProgressIndicator()
                       : const Text("LOGIN"),
