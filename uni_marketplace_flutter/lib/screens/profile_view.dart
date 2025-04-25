@@ -27,9 +27,10 @@ class _ProfileViewState extends State<ProfileView> {
   void loadUserData() async {
     profile = ProfileViewModel(widget.userId);
     await profile.loadUserData();
-    setState(() {
-      _isLoading = false;
-    });
+
+    if (!mounted) return;
+    setState(() {});
+
   }
 
   @override
