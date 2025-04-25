@@ -1,5 +1,5 @@
 // utils/LocationHelper.kt
-package com.example.uni_matketplace_kotlin.data.location
+package com.example.uni_matketplace_kotlin.data
 
 import android.content.Context
 import android.location.Location
