@@ -44,7 +44,6 @@ class MapsViewModel(
 
     fun loadClosestProduct(currentLocation: LatLng) {
         viewModelScope.launch {
-            // Aquí va la lógica para cargar el producto más cercano
             val closestProduct = productRepository.getClosestProduct(currentLocation)
             _closestProduct.postValue(closestProduct)
         }
