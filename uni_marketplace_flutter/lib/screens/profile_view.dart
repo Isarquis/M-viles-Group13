@@ -30,6 +30,7 @@ class _ProfileViewState extends State<ProfileView> {
 
     if (!mounted) return;
     setState(() {});
+
   }
 
   @override
