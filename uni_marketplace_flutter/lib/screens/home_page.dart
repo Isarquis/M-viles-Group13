@@ -35,16 +35,20 @@ void initState() {
   _loadProducts();
 
   _connectivitySubscription = Connectivity()
-      .onConnectivityChanged
-      .listen((ConnectivityResult result) {
-    if (result != ConnectivityResult.none) {
-      _loadProducts();
-    } else {
-      setState(() {
-        _isOffline = true;
-      });
-    }
-  });
+    .onConnectivityChanged
+    .listen((ConnectivityResult result) {
+  if (result != ConnectivityResult.none) {
+    setState(() {
+      _isOffline = false;
+    });
+    _loadProducts();
+  } else {
+    setState(() {
+      _isOffline = true;
+    });
+  }
+});
+
     }
     @override
     void dispose() {
@@ -104,19 +108,23 @@ Future<void> _updateRecommended() async {
         _isOffline = false;
       });
     } catch (e) {
-      await _loadCachedProducts();
+      await _loadCachedProducts(forceOffline: false);
     }
   } else {
-    await _loadCachedProducts();
+w
+    await _loadCachedProducts(forceOffline: true);
   }
 }
 
-Future<void> _loadCachedProducts() async {
+
+Future<void> _loadCachedProducts({bool forceOffline = true}) async {
   final box = await Hive.openBox('offline_products');
   final cachedList = box.get('products') as List<dynamic>?;
 
   if (cachedList != null && cachedList.isNotEmpty) {
-    final cachedProducts = cachedList.map((e) => Product.fromMap(Map<String, dynamic>.from(e), e['id'] ?? '')).toList();
+    final cachedProducts = cachedList
+        .map((e) => Product.fromMap(Map<String, dynamic>.from(e), e['id'] ?? ''))
+        .toList();
 
     final categories = <String>{'All'};
     for (final product in cachedProducts) {
@@ -128,7 +136,7 @@ Future<void> _loadCachedProducts() async {
       _filteredProducts = cachedProducts;
       _categories = categories.toList();
       _recommendedProducts = [];
-      _isOffline = true;
+      if (forceOffline) _isOffline = true;
     });
   } else {
     setState(() {
@@ -136,10 +144,11 @@ Future<void> _loadCachedProducts() async {
       _filteredProducts = [];
       _categories = ['All'];
       _recommendedProducts = [];
-      _isOffline = true;
+      if (forceOffline) _isOffline = true;
     });
   }
 }
+
 
 
   void _filterProducts(String query) {
