@@ -5,6 +5,7 @@ import 'package:uni_marketplace_flutter/models/product_model.dart';
 import 'package:uni_marketplace_flutter/services/firestore_service.dart';
 import 'package:uni_marketplace_flutter/widgets/product_card.dart';
 import 'package:uni_marketplace_flutter/services/search_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -30,8 +31,11 @@ class _HomePageState extends State<HomePage> {
 
     }
 
-  Future<void> _updateRecommended() async {
-  final topSearches = await _searchService.getTopSearchTerms(limit: 3);
+Future<void> _updateRecommended() async {
+  final userId = FirebaseAuth.instance.currentUser?.uid;
+  if (userId == null) return;
+
+  final topSearches = await _searchService.getTopUserSearchTerms(userId, limit: 3);
   final recommended = _allProducts.where((product) {
     final title = product.title?.toLowerCase() ?? '';
     return topSearches.any((term) => title.contains(term));
@@ -41,6 +45,7 @@ class _HomePageState extends State<HomePage> {
     _recommendedProducts = recommended;
   });
 }
+
 
 
   Future<void> _loadProducts() async {

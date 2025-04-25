@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../viewmodels/auth_viewmodel.dart';
+import 'package:uni_marketplace_flutter/screens/profile_view.dart';
+import 'package:uni_marketplace_flutter/main.dart';
 
 class LoginPage extends StatelessWidget {
   final _formKey = GlobalKey<FormState>();
@@ -56,8 +58,13 @@ class LoginPage extends StatelessWidget {
                           if (_formKey.currentState!.validate()) {
                             final user = await viewModel.login(_email.text, _password.text);
                             if (user != null) {
-                              Navigator.pushReplacementNamed(context, '/home');
-                            }
+                                Navigator.pushReplacement(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => HomeScreen(userId: user.uid),
+                                  ),
+                                );
+                              }
                           }
                         },
                   child: viewModel.loading

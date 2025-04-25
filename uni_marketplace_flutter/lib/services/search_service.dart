@@ -1,11 +1,15 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class SearchService {
-  final _searchTermsRef = FirebaseFirestore.instance.collection('search_terms');
+  final FirebaseFirestore _db = FirebaseFirestore.instance;
 
   Future<void> incrementSearchTerm(String term) async {
-    final docRef = _searchTermsRef.doc(term.toLowerCase());
-    await FirebaseFirestore.instance.runTransaction((tx) async {
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+    if (userId == null) return;
+
+    final docRef = _db.collection('search_terms').doc(userId).collection('terms').doc(term.toLowerCase());
+    await _db.runTransaction((tx) async {
       final doc = await tx.get(docRef);
       if (doc.exists) {
         final current = doc.data()?['count'] ?? 0;
@@ -16,8 +20,12 @@ class SearchService {
     });
   }
 
-  Future<List<String>> getTopSearchTerms({int limit = 5}) async {
-    final query = await _searchTermsRef.orderBy('count', descending: true).limit(limit).get();
+  Future<List<String>> getTopUserSearchTerms(String userId, {int limit = 5}) async {
+    final query = await _db.collection('search_terms').doc(userId).collection('terms')
+      .orderBy('count', descending: true)
+      .limit(limit)
+      .get();
+
     return query.docs.map((doc) => doc.id).toList();
   }
 }

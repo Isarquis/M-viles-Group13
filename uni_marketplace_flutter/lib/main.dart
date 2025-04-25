@@ -60,14 +60,21 @@ class MyApp extends StatelessWidget {
       routes: {
         '/login': (context) => LoginPage(),
         '/register': (context) => RegisterPage(),
-        '/home': (context) => const HomeScreen(),
+        '/home': (context) {
+          final user = FirebaseAuth.instance.currentUser;
+          return HomeScreen(userId: user!.uid);
+        },
+
       },
     );
   }
 }
 
+
+
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final String userId;
+  const HomeScreen({required this.userId, super.key});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -77,14 +84,30 @@ class _HomeScreenState extends State<HomeScreen> {
   int currentIndex = 0;
   final FirestoreService _firestoreService = FirestoreService();
 
-  final List<Widget> _screens = [
-    const HomePage(),
-    const ProductList(),
-    const ProductDetail(productId: '60J3pS3bRnFjrksPd8hL'),
-    const PostProductScreen(),
-    const NearbyProductsMap(),
-    ProfileView(onDiscoverTapped: () {}),
-  ];
+  late String userId;
+  late List<Widget> _screens;
+
+  @override
+  void initState() {
+    super.initState();
+    userId = widget.userId;
+
+    _screens = [
+      const HomePage(),
+      const ProductList(),
+      const ProductDetail(productId: '60J3pS3bRnFjrksPd8hL'),
+      const PostProductScreen(),
+      const NearbyProductsMap(),
+      ProfileView(
+        onDiscoverTapped: () {
+          setState(() {
+            currentIndex = 0;
+          });
+        },
+        userId: userId,
+      ),
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -98,7 +121,7 @@ class _HomeScreenState extends State<HomeScreen> {
     ];
 
     return Scaffold(
-    body: _screens[currentIndex],
+      body: _screens[currentIndex],
       bottomNavigationBar: CustomNavBar(
         selectedIndex: currentIndex,
         onItemTapped: (index) {
