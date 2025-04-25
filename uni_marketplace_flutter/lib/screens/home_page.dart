@@ -111,7 +111,7 @@ Future<void> _updateRecommended() async {
       await _loadCachedProducts(forceOffline: false);
     }
   } else {
-w
+
     await _loadCachedProducts(forceOffline: true);
   }
 }
