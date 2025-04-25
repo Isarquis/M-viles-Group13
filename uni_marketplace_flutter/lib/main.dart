@@ -16,11 +16,15 @@ import 'widgets/custom_navbar.dart';
 import 'viewmodels/auth_viewmodel.dart';
 import 'viewmodels/nearby_products_viewmodel.dart';
 import 'services/firestore_service.dart';
+import 'package:flutter/material.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:path_provider/path_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
-
+  await Hive.initFlutter();
+  
   runApp(
     MultiProvider(
       providers: [
