@@ -115,6 +115,15 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final screens = [
+      Center(child: Text('Home')),
+      ProductList(),
+      ProductDetail(productId: '60J3pS3bRnFjrksPd8hL'),
+      PostProductScreen(),
+      NearbyProductsMap(),
+      ProfileView(onDiscoverTapped: () => setState(() => currentIndex = 1)),
+    ];
+
     return Scaffold(
       body: _screens[currentIndex],
       bottomNavigationBar: CustomNavBar(
