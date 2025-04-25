@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'dart:io';
+import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:uni_marketplace_flutter/screens/product_list.dart';
 import 'package:uni_marketplace_flutter/screens/post_product/post_product_view_model.dart';
 import 'package:uni_marketplace_flutter/services/firestore_service.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // Para obtener el ownerId
 
 class PostProductScreen extends StatefulWidget {
   const PostProductScreen({super.key});
@@ -16,10 +18,14 @@ class _PostProductScreenState extends State<PostProductScreen> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _priceController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _baseBidController = TextEditingController();
   String _selectedCategory = 'Math';
   final List<String> _transactionTypes = [];
   File? _image;
   bool _isLoading = false;
+  double? _latitude;
+  double? _longitude;
 
   late PostProductViewModel _viewModel;
 
@@ -29,6 +35,32 @@ class _PostProductScreenState extends State<PostProductScreen> {
   void initState() {
     super.initState();
     _viewModel = PostProductViewModel(FirestoreService());
+    _getLocation();
+  }
+
+  Future<void> _getLocation() async {
+    try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) return;
+
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+
+      if (permission == LocationPermission.whileInUse ||
+          permission == LocationPermission.always) {
+        Position position = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high,
+        );
+        setState(() {
+          _latitude = position.latitude;
+          _longitude = position.longitude;
+        });
+      }
+    } catch (e) {
+      print('Error getting location: $e');
+    }
   }
 
   Future<void> _pickImage(bool isCamera) async {
@@ -67,14 +99,31 @@ class _PostProductScreenState extends State<PostProductScreen> {
     });
 
     try {
+      // Obtener el ID del dueño (usuario autenticado)
+      User? user = FirebaseAuth.instance.currentUser;
+      String ownerId = user?.uid ?? "default_owner_id"; // ID del propietario
+
+      // Obtener la fecha de creación
+      DateTime createdAt = DateTime.now();
+
+      // Convertir la fecha a formato string
+      String formattedDate =
+          "${createdAt.day}/${createdAt.month}/${createdAt.year}, ${createdAt.hour}:${createdAt.minute}:${createdAt.second}";
+
+      // Publicar el producto con los nuevos campos
       await _viewModel.postProduct(
         title: _nameController.text,
         description: _descriptionController.text,
         selectedCategory: _selectedCategory,
         price: double.parse(_priceController.text),
-        ownerId: '202113407',
-        transactionTypes: _transactionTypes.isNotEmpty ? _transactionTypes : [],
+        baseBid: double.tryParse(_baseBidController.text) ?? 0.0,
+        transactionTypes: _transactionTypes,
+        email: _emailController.text,
         imageFile: _image!,
+        latitude: _latitude ?? 0.0,
+        longitude: _longitude ?? 0.0,
+        createdAt: formattedDate, // Fecha de creación
+        ownerId: ownerId, // ID del dueño
       );
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -115,7 +164,7 @@ class _PostProductScreenState extends State<PostProductScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Post a Product'),
-        backgroundColor: const Color(0xFF4F7A94), // Cerulean
+        backgroundColor: const Color(0xFF4F7A94),
         elevation: 0,
         actions: [
           IconButton(
@@ -129,13 +178,12 @@ class _PostProductScreenState extends State<PostProductScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Botones de imagen
             ElevatedButton.icon(
               onPressed: () => _pickImage(false),
               icon: const Icon(Icons.photo_library),
               label: const Text('Select from Gallery'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1F7A8C), // Teal
+                backgroundColor: const Color(0xFF1F7A8C),
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(
                   vertical: 12,
@@ -166,7 +214,6 @@ class _PostProductScreenState extends State<PostProductScreen> {
               ),
             ),
             const SizedBox(height: 20),
-            // Mostrar la imagen seleccionada
             if (_image != null)
               Padding(
                 padding: const EdgeInsets.only(top: 10),
@@ -196,7 +243,6 @@ class _PostProductScreenState extends State<PostProductScreen> {
                 ),
               ),
             const SizedBox(height: 16),
-            // Campos del formulario
             TextField(
               controller: _nameController,
               decoration: const InputDecoration(labelText: 'Product Name'),
@@ -221,11 +267,7 @@ class _PostProductScreenState extends State<PostProductScreen> {
                       ),
                     );
                   }).toList(),
-              onChanged: (value) {
-                setState(() {
-                  _selectedCategory = value!;
-                });
-              },
+              onChanged: (value) => setState(() => _selectedCategory = value!),
               decoration: const InputDecoration(
                 labelText: 'Category',
                 labelStyle: TextStyle(fontFamily: 'Work Sans', fontSize: 16),
@@ -239,6 +281,18 @@ class _PostProductScreenState extends State<PostProductScreen> {
               style: const TextStyle(fontFamily: 'Work Sans', fontSize: 16),
             ),
             const SizedBox(height: 16),
+
+            // Mostrar solo si el usuario selecciona "Bidding"
+            if (_transactionTypes.contains('Bidding')) ...[
+              TextField(
+                controller: _baseBidController,
+                decoration: const InputDecoration(labelText: 'Base Bid (COP)'),
+                keyboardType: TextInputType.number,
+                style: const TextStyle(fontFamily: 'Work Sans', fontSize: 16),
+              ),
+              const SizedBox(height: 16),
+            ],
+
             const Text(
               'Transaction Types:',
               style: TextStyle(
@@ -252,11 +306,10 @@ class _PostProductScreenState extends State<PostProductScreen> {
               value: _transactionTypes.contains('Rent'),
               onChanged: (value) {
                 setState(() {
-                  if (value!) {
+                  if (value!)
                     _transactionTypes.add('Rent');
-                  } else {
+                  else
                     _transactionTypes.remove('Rent');
-                  }
                 });
               },
             ),
@@ -265,11 +318,10 @@ class _PostProductScreenState extends State<PostProductScreen> {
               value: _transactionTypes.contains('Buy'),
               onChanged: (value) {
                 setState(() {
-                  if (value!) {
+                  if (value!)
                     _transactionTypes.add('Buy');
-                  } else {
+                  else
                     _transactionTypes.remove('Buy');
-                  }
                 });
               },
             ),
@@ -278,13 +330,19 @@ class _PostProductScreenState extends State<PostProductScreen> {
               value: _transactionTypes.contains('Bidding'),
               onChanged: (value) {
                 setState(() {
-                  if (value!) {
+                  if (value!)
                     _transactionTypes.add('Bidding');
-                  } else {
+                  else
                     _transactionTypes.remove('Bidding');
-                  }
                 });
               },
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _emailController,
+              decoration: const InputDecoration(labelText: 'Contact Email'),
+              keyboardType: TextInputType.emailAddress,
+              style: const TextStyle(fontFamily: 'Work Sans', fontSize: 16),
             ),
             const SizedBox(height: 20),
             Center(

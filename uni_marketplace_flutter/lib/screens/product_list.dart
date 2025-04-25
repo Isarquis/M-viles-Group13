@@ -66,7 +66,6 @@ class _SearchBarState extends State<SearchBar> {
                   if (widget.controller.text.isEmpty) {
                     widget.onSearchResult([]);
                   } else if (suggestions.isNotEmpty) {
-
                     _firestoreService.logFeatureUsage(
                       'search${widget.controller.text}',
                     );
@@ -142,9 +141,10 @@ class _ProductListState extends State<ProductList> {
     DateTime receivedAt = DateTime.now();
 
     setState(() {
-      final available = fetchedProducts
-          .where((p) => (p.status ?? '').toLowerCase() == 'available')
-          .toList();
+      final available =
+          fetchedProducts
+              .where((p) => (p.status ?? '').toLowerCase() == 'available')
+              .toList();
       _products = available;
       _allProducts = List<Product>.from(available);
     });
@@ -340,7 +340,7 @@ class _ProductListState extends State<ProductList> {
                       child:
                           (product.image ?? '').startsWith('http')
                               ? CachedNetworkImage(
-                              imageUrl: product.image ?? '',
+                                imageUrl: product.image ?? '',
                                 fit: BoxFit.contain,
                                 height: 200,
                                 placeholder:
@@ -389,7 +389,7 @@ class _ProductListState extends State<ProductList> {
                                 MaterialPageRoute(
                                   builder:
                                       (context) =>
-                                          ProductDetail(productId: product.id ),
+                                          ProductDetail(productId: product.id),
                                 ),
                               );
                             },

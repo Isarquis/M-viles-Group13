@@ -36,12 +36,16 @@ class LoginPage extends StatelessWidget {
                 ),
                 const SizedBox(height: 40),
                 if (viewModel.error != null)
-                  Text(viewModel.error!, style: const TextStyle(color: Colors.red)),
+                  Text(
+                    viewModel.error!,
+                    style: const TextStyle(color: Colors.red),
+                  ),
                 const SizedBox(height: 10),
                 TextFormField(
                   controller: _email,
                   decoration: _inputDecoration('e-mail'),
-                  validator: (v) => v!.contains('@') ? null : 'Enter a valid email',
+                  validator:
+                      (v) => v!.contains('@') ? null : 'Enter a valid email',
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
@@ -53,24 +57,31 @@ class LoginPage extends StatelessWidget {
                 const SizedBox(height: 30),
                 ElevatedButton(
                   style: _buttonStyle(),
-                  onPressed: viewModel.loading
-                        ? null
-                        : () async {
+                  onPressed:
+                      viewModel.loading
+                          ? null
+                          : () async {
                             if (_formKey.currentState!.validate()) {
-                              final connectivityResult = await Connectivity().checkConnectivity();
-                              if (connectivityResult == ConnectivityResult.none) {
+                              final connectivityResult =
+                                  await Connectivity().checkConnectivity();
+                              if (connectivityResult ==
+                                  ConnectivityResult.none) {
                                 showDialog(
                                   context: context,
-                                  builder: (context) => AlertDialog(
-                                    title: const Text('No Connection'),
-                                    content: const Text('You are offline. Please connect to the internet to login.'),
-                                    actions: [
-                                      TextButton(
-                                        onPressed: () => Navigator.pop(context),
-                                        child: const Text('OK'),
+                                  builder:
+                                      (context) => AlertDialog(
+                                        title: const Text('No Connection'),
+                                        content: const Text(
+                                          'You are offline. Please connect to the internet to login.',
+                                        ),
+                                        actions: [
+                                          TextButton(
+                                            onPressed:
+                                                () => Navigator.pop(context),
+                                            child: const Text('OK'),
+                                          ),
+                                        ],
                                       ),
-                                    ],
-                                  ),
                                 );
                                 return;
                               }
@@ -78,28 +89,34 @@ class LoginPage extends StatelessWidget {
                               viewModel.setLoading(true);
 
                               try {
-                                final user = await viewModel.login(_email.text, _password.text);
+                                final user = await viewModel.login(
+                                  _email.text,
+                                  _password.text,
+                                );
                                 if (user != null) {
                                   Navigator.pushReplacement(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (_) => HomeScreen(userId: user.uid),
+                                      builder:
+                                          (_) => HomeScreen(userId: user.uid),
                                     ),
                                   );
                                 }
                               } catch (error) {
                                 showDialog(
                                   context: context,
-                                  builder: (context) => AlertDialog(
-                                    title: const Text('Login Failed'),
-                                    content: Text(error.toString()),
-                                    actions: [
-                                      TextButton(
-                                        onPressed: () => Navigator.pop(context),
-                                        child: const Text('OK'),
+                                  builder:
+                                      (context) => AlertDialog(
+                                        title: const Text('Login Failed'),
+                                        content: Text(error.toString()),
+                                        actions: [
+                                          TextButton(
+                                            onPressed:
+                                                () => Navigator.pop(context),
+                                            child: const Text('OK'),
+                                          ),
+                                        ],
                                       ),
-                                    ],
-                                  ),
                                 );
                               } finally {
                                 viewModel.setLoading(false);
@@ -107,9 +124,10 @@ class LoginPage extends StatelessWidget {
                             }
                           },
 
-                  child: viewModel.loading
-                      ? const CircularProgressIndicator()
-                      : const Text("LOGIN"),
+                  child:
+                      viewModel.loading
+                          ? const CircularProgressIndicator()
+                          : const Text("LOGIN"),
                 ),
                 const SizedBox(height: 16),
                 TextButton(
@@ -127,9 +145,7 @@ class LoginPage extends StatelessWidget {
   InputDecoration _inputDecoration(String label) {
     return InputDecoration(
       labelText: label,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
       focusedBorder: OutlineInputBorder(
         borderSide: const BorderSide(color: Color(0xFF1F7A8C), width: 2),
         borderRadius: BorderRadius.circular(12),

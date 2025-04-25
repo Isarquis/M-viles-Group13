@@ -39,7 +39,25 @@ class FirestoreService {
   // PRODUCTS
 
   Future<void> addProduct(Map<String, dynamic> data) async {
-    await FirebaseFirestore.instance.collection('products').add(data);
+    try {
+      // Obtener la fecha de creación actual
+      DateTime now = DateTime.now();
+      String formattedDate =
+          "${now.day}-${now.month}-${now.year} ${now.hour}:${now.minute}:${now.second} UTC-5";
+
+      // Asignar el ownerId del usuario actual (esto lo debes obtener de alguna parte de la sesión o del contexto)
+      String ownerId =
+          "202113407"; // Aquí debes poner el ID del propietario, que en tu caso lo recibirías dinámicamente
+
+      // Añadir la fecha de creación y el ID del propietario al producto
+      data['createdAt'] = formattedDate;
+      data['ownerId'] = ownerId;
+
+      // Subir el producto con la fecha de creación y el ownerId
+      await _db.collection('products').add(data);
+    } catch (e) {
+      throw Exception('Error adding product: $e');
+    }
   }
 
   Future<String> uploadImageToS3(File imageFile) async {
@@ -189,7 +207,7 @@ class FirestoreService {
         }
       }
     }
-    
+
     combined.sort(
       (a, b) =>
           (b['bid']['amount'] as int).compareTo(a['bid']['amount'] as int),
@@ -215,12 +233,15 @@ class FirestoreService {
       'type': 'feature_usage',
       'feature': feature,
 
-      'createdAt': FieldValue.serverTimestamp()
+      'createdAt': FieldValue.serverTimestamp(),
     });
   }
 
-  Future<void> logResponseTime(DateTime requestedAt, DateTime receivedAt, DateTime showedAt) async {
-
+  Future<void> logResponseTime(
+    DateTime requestedAt,
+    DateTime receivedAt,
+    DateTime showedAt,
+  ) async {
     await _db.collection('logs').add({
       'type': 'response_time',
       'requested_at': requestedAt.millisecondsSinceEpoch,
@@ -228,7 +249,6 @@ class FirestoreService {
       'showed_at': showedAt.millisecondsSinceEpoch,
     });
   }
-
 
   Future<void> placeRentOffer(Map<String, dynamic> rentData) async {
     await _db.collection('rents').add(rentData);
@@ -262,8 +282,6 @@ class FirestoreService {
           (b['rent']['price'] as int).compareTo(a['rent']['price'] as int),
     );
 
-
-
     return combined;
   }
 }
@@ -272,11 +290,12 @@ Future<List<Product>> getProductsMatchingTerms(List<String> terms) async {
   Set<Product> results = {};
 
   for (final term in terms) {
-    final query = await FirebaseFirestore.instance
-        .collection('products')
-        .where('title', isGreaterThanOrEqualTo: term)
-        .where('title', isLessThanOrEqualTo: term + '\uf8ff')
-        .get();
+    final query =
+        await FirebaseFirestore.instance
+            .collection('products')
+            .where('title', isGreaterThanOrEqualTo: term)
+            .where('title', isLessThanOrEqualTo: term + '\uf8ff')
+            .get();
 
     results.addAll(query.docs.map((doc) => Product.fromFirestore(doc)));
   }
