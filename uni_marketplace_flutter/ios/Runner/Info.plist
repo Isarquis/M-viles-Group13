@@ -28,6 +28,8 @@
 	<true/>
 	<key>NSCameraUsageDescription</key>
 	<string>Esta app necesita acceso a la cámara para tomar fotos de productos.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>We need your location to show nearby products</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Esta app necesita acceso a tu galería para subir imágenes de productos.</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
