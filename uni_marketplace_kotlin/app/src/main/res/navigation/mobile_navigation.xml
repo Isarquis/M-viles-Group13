@@ -31,7 +31,7 @@
         tools:layout="@layout/fragment_maps" />
     <fragment
         android:id="@+id/navigation_post"
-        android:name="com.example.uni_matketplace_kotlin.ui.map.CreateProductFragment"
+        android:name="com.example.uni_matketplace_kotlin.ui.createproduct.CreateProductFragment"
         android:label="Post"
         tools:layout="@layout/fragment_createproduct" />
 </navigation>
