@@ -75,7 +75,9 @@ class FirestoreService {
   Future<List<Product>> getAllProducts() async {
     var snapshot = await _db.collection('products').get();
     return snapshot.docs
-        .map((doc) => Product.fromMap(doc.data(), doc.id))
+        .map((doc) {
+          return Product.fromMap(doc.data(), doc.id);
+        })
         .toList();
   }
 
@@ -86,7 +88,9 @@ class FirestoreService {
             .where('type', arrayContains: type)
             .get();
     return snapshot.docs
-        .map((doc) => Product.fromMap(doc.data(), doc.id))
+        .map((doc) {
+          return Product.fromMap(doc.data(), doc.id);
+        })
         .toList();
   }
 
@@ -279,5 +283,3 @@ Future<List<Product>> getProductsMatchingTerms(List<String> terms) async {
 
   return results.toList();
 }
-
-

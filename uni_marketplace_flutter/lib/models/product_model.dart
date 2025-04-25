@@ -45,7 +45,11 @@ class Product {
       latitude: (data['latitude'] != null) ? (data['latitude'] as num).toDouble() : null,
       longitude: (data['longitude'] != null) ? (data['longitude'] as num).toDouble() : null,
       type: (data['type'] != null) ? List<String>.from(data['type']) : null,
-      createdAt: data['createdAt']?.toDate(),
+      createdAt: data['createdAt'] == null
+          ? null
+          : data['createdAt'] is int
+              ? DateTime.fromMillisecondsSinceEpoch(data['createdAt'])
+              : (data['createdAt'] as Timestamp).toDate(),
     );
   }
 
