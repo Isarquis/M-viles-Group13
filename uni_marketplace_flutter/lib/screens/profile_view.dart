@@ -25,13 +25,15 @@ class _ProfileViewState extends State<ProfileView> {
   }
 
   void loadUserData() async {
-    profile = ProfileViewModel(widget.userId);
-    await profile.loadUserData();
+      profile = ProfileViewModel(widget.userId);
+      await profile.loadUserData();
 
-    if (!mounted) return;
-    setState(() {});
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+      });
+}
 
-  }
 
   @override
   Widget build(BuildContext context) {

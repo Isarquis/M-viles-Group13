@@ -32,26 +32,33 @@ class Product {
   });
 
   factory Product.fromMap(Map<String, dynamic> data, String documentId) {
-    return Product(
-      id: documentId,
-      title: data['title'],
-      description: data['description'],
-      image: data['image'],
-      category: data['category'],
-      ownerId: data['ownerId']?.toString(),
-      status: data['status'],
-      price: (data['price'] != null) ? (data['price'] as num).toDouble() : null,
-      baseBid: (data['baseBid'] != null) ? (data['baseBid'] as num).toDouble() : null,
-      latitude: (data['latitude'] != null) ? (data['latitude'] as num).toDouble() : null,
-      longitude: (data['longitude'] != null) ? (data['longitude'] as num).toDouble() : null,
-      type: (data['type'] != null) ? List<String>.from(data['type']) : null,
-      createdAt: data['createdAt'] == null
-          ? null
-          : data['createdAt'] is int
-              ? DateTime.fromMillisecondsSinceEpoch(data['createdAt'])
-              : (data['createdAt'] as Timestamp).toDate(),
-    );
-  }
+  return Product(
+    id: documentId,
+    title: data['title'],
+    description: data['description'],
+    image: data['image'],
+    category: data['category'],
+    ownerId: data['ownerId']?.toString(),
+    status: data['status'],
+    price: (data['price'] != null) ? (data['price'] as num).toDouble() : null,
+    baseBid: (data['baseBid'] != null) ? (data['baseBid'] as num).toDouble() : null,
+    latitude: (data['latitude'] != null) ? (data['latitude'] as num).toDouble() : null,
+    longitude: (data['longitude'] != null) ? (data['longitude'] as num).toDouble() : null,
+    type: (data['type'] != null) ? List<String>.from(data['type']) : null,
+    createdAt: _parseDateTime(data['createdAt']),
+  );
+}
+
+static DateTime? _parseDateTime(dynamic value) {
+  if (value == null) return null;
+  if (value is Timestamp) return value.toDate();
+  if (value is int) return DateTime.fromMillisecondsSinceEpoch(value);
+  if (value is String) return DateTime.tryParse(value);  
+  if (value is DateTime) return value;
+  return null;
+}
+
+
 
   Map<String, dynamic> toMap() {
     return {
