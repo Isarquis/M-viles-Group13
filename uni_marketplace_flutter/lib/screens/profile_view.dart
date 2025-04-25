@@ -24,6 +24,7 @@ class _ProfileViewState extends State<ProfileView> {
   void loadUserData() async {
     profile = ProfileViewModel('202113407');
     await profile.loadUserData();
+    if (!mounted) return;
     setState(() {});
   }
 
