@@ -1,68 +1,58 @@
 package com.example.uni_matketplace_kotlin.viewmodel
 
-import android.location.Location
-import androidx.lifecycle.*
-import com.example.uni_matketplace_kotlin.data.model.Product
-import com.example.uni_matketplace_kotlin.data.model.User
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.example.uni_matketplace_kotlin.data.repositories.ProductRepository
 import com.example.uni_matketplace_kotlin.data.repositories.UserRepository
+import com.example.uni_matketplace_kotlin.data.remote.entities.Product
+import com.example.uni_matketplace_kotlin.data.remote.entities.User
 import com.google.android.gms.maps.model.LatLng
 import kotlinx.coroutines.launch
 
 class MapsViewModel(
-    private val userRepository: UserRepository = UserRepository(),
-    private val productRepository: ProductRepository = ProductRepository()
+    private val userRepository: UserRepository,
+    private val productRepository: ProductRepository
 ) : ViewModel() {
 
-    private val _closestProduct = MutableLiveData<Product?>()
-    val closestProduct: LiveData<Product?> = _closestProduct
+    private val _nearbyUsers = MutableLiveData<List<User>>()
+    val nearbyUsers: LiveData<List<User>> get() = _nearbyUsers
 
     private val _closestUser = MutableLiveData<User?>()
-    val closestUser: LiveData<User?> = _closestUser
+    val closestUser: LiveData<User?> get() = _closestUser
 
-    private val _nearbyUsers = MutableLiveData<List<User>>()
-    val nearbyUsers: LiveData<List<User>> = _nearbyUsers
+    private val _closestProduct = MutableLiveData<Product?>()
+    val closestProduct: LiveData<Product?> get() = _closestProduct
 
-    private val _distanceToClosestUser = MutableLiveData<Float>()
-    val distanceToClosestUser: LiveData<Float> = _distanceToClosestUser
+    private val _distanceToClosestUser = MutableLiveData<Double>()
+    val distanceToClosestUser: LiveData<Double> get() = _distanceToClosestUser
 
-    fun loadClosestProduct(currentLocation: LatLng, maxDistance: Float = 2000f) {
+    private val _errorMessage = MutableLiveData<String>()
+    val errorMessage: LiveData<String> get() = _errorMessage
+
+    fun loadNearbyUsers(currentLocation: LatLng) {
         viewModelScope.launch {
-            val result = userRepository.getClosestUserWithProduct(currentLocation, maxDistance, productRepository)
-
-            result?.let { (user, distance, product) ->
-                _closestUser.value = user
-                _closestProduct.value = product
-                _distanceToClosestUser.value = distance
-            } ?: run {
-                _closestUser.value = null
-                _closestProduct.value = null
-                _distanceToClosestUser.value = null
+            try {
+                val users = userRepository.getUsersNearby(currentLocation, maxDistance = 400f)
+                _nearbyUsers.postValue(users)
+            } catch (e: Exception) {
+                _errorMessage.postValue("Error loading nearby users: ${e.message}")
             }
         }
     }
 
-    fun loadNearbyUsers(currentLocation: LatLng, maxDistance: Float = 2000f) {
+    fun loadClosestProduct(currentLocation: LatLng) {
         viewModelScope.launch {
-            val users = userRepository.getAllUsers()
-
-            val nearbyUsersWithProducts = users.mapNotNull { user ->
-                val location = user.location
-                if (location?.latitude != null && location.longitude != null) {
-                    val distance = calculateDistance(currentLocation, LatLng(location.latitude, location.longitude))
-                    if (distance <= maxDistance && productRepository.userHasProducts(user.id)) {
-                        user
-                    } else null
-                } else null
-            }
-
-            _nearbyUsers.postValue(nearbyUsersWithProducts)
+            val closestProduct = productRepository.getClosestProduct(currentLocation)
+            _closestProduct.postValue(closestProduct)
         }
     }
 
-    private fun calculateDistance(start: LatLng, end: LatLng): Float {
-        val results = FloatArray(1)
-        Location.distanceBetween(start.latitude, start.longitude, end.latitude, end.longitude, results)
-        return results[0]
+    fun loadClosestUser(currentLocation: LatLng) {
+        viewModelScope.launch {
+            val closestUser = userRepository.getClosestUser(currentLocation)
+            _closestUser.postValue(closestUser)
+        }
     }
 }
