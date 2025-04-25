@@ -6,6 +6,9 @@ import 'package:uni_marketplace_flutter/services/firestore_service.dart';
 import 'package:uni_marketplace_flutter/widgets/product_card.dart';
 import 'package:uni_marketplace_flutter/services/search_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:hive/hive.dart';
+import 'dart:async';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -18,6 +21,8 @@ class _HomePageState extends State<HomePage> {
   final SearchService _searchService = SearchService();
   final FirestoreService _firestoreService = FirestoreService();
   final TextEditingController _searchController = TextEditingController();
+  bool _isOffline = false;
+  late final StreamSubscription<ConnectivityResult> _connectivitySubscription;
   List<Product> _allProducts = [];
   List<Product> _filteredProducts = [];
   List<Product> _recommendedProducts = [];
@@ -25,11 +30,30 @@ class _HomePageState extends State<HomePage> {
   String _selectedCategory = 'All';
 
   @override
-    void initState() {
-      super.initState();
-      _loadProducts();
+void initState() {
+  super.initState();
+  _loadProducts();
 
+  _connectivitySubscription = Connectivity()
+      .onConnectivityChanged
+      .listen((ConnectivityResult result) {
+    if (result != ConnectivityResult.none) {
+      _loadProducts();
+    } else {
+      setState(() {
+        _isOffline = true;
+      });
     }
+  });
+    }
+    @override
+    void dispose() {
+      _connectivitySubscription.cancel();
+      _searchController.dispose();
+      super.dispose();
+    }
+
+    
 
 Future<void> _updateRecommended() async {
   final userId = FirebaseAuth.instance.currentUser?.uid;
@@ -47,29 +71,74 @@ Future<void> _updateRecommended() async {
 }
 
 
-
   Future<void> _loadProducts() async {
-  List<Product> products = await _firestoreService.getAllProducts();
-  products.sort((a, b) {
-    final aDate = a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
-    final bDate = b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
-    return bDate.compareTo(aDate);
-  });
+  final connectivityResult = await Connectivity().checkConnectivity();
+  final isOnline = connectivityResult != ConnectivityResult.none;
+  final box = await Hive.openBox('offline_products');
 
-  final extractedCategories = <String>{'All'};
-  for (var product in products) {
-    if (product.category != null && product.category!.isNotEmpty) {
-      extractedCategories.add(product.category!);
+  if (isOnline) {
+    try {
+      List<Product> products = await _firestoreService.getAllProducts();
+      products.sort((a, b) => (b.createdAt ?? DateTime(0)).compareTo(a.createdAt ?? DateTime(0)));
+
+      await box.put('products', products.map((p) => p.toMap()).toList());
+
+      final categories = <String>{'All'};
+      for (final product in products) {
+        if (product.category?.isNotEmpty == true) categories.add(product.category!);
+      }
+
+      final userId = FirebaseAuth.instance.currentUser?.uid;
+      if (userId == null) return;
+      final topSearches = await _searchService.getTopUserSearchTerms(userId, limit: 3);
+      final recommended = products.where((product) {
+        final title = product.title?.toLowerCase() ?? '';
+        return topSearches.any((term) => title.contains(term));
+      }).toList();
+
+      setState(() {
+        _allProducts = products;
+        _filteredProducts = products;
+        _categories = categories.toList();
+        _recommendedProducts = recommended;
+        _isOffline = false;
+      });
+    } catch (e) {
+      await _loadCachedProducts();
     }
+  } else {
+    await _loadCachedProducts();
   }
+}
 
-  setState(() {
-    _allProducts = products;
-    _filteredProducts = products;
-    _categories = extractedCategories.toList();
-  });
+Future<void> _loadCachedProducts() async {
+  final box = await Hive.openBox('offline_products');
+  final cachedList = box.get('products') as List<dynamic>?;
 
-  await _updateRecommended(); 
+  if (cachedList != null && cachedList.isNotEmpty) {
+    final cachedProducts = cachedList.map((e) => Product.fromMap(Map<String, dynamic>.from(e), e['id'] ?? '')).toList();
+
+    final categories = <String>{'All'};
+    for (final product in cachedProducts) {
+      if (product.category?.isNotEmpty == true) categories.add(product.category!);
+    }
+
+    setState(() {
+      _allProducts = cachedProducts;
+      _filteredProducts = cachedProducts;
+      _categories = categories.toList();
+      _recommendedProducts = [];
+      _isOffline = true;
+    });
+  } else {
+    setState(() {
+      _allProducts = [];
+      _filteredProducts = [];
+      _categories = ['All'];
+      _recommendedProducts = [];
+      _isOffline = true;
+    });
+  }
 }
 
 
@@ -116,6 +185,22 @@ Future<void> _updateRecommended() async {
               'Welcome to UNIMARKET',
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
+             if (_isOffline) ...[
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 8.0),
+                child: Row(
+                  children: [
+                    Icon(Icons.wifi_off, color: Colors.red),
+                    SizedBox(width: 8),
+                    Text(
+                      'You are offline. Showing data storage.',
+                      style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+
             const SizedBox(height: 4),
             const Text(
               'Buy, sell, and discover items from your university community.',
@@ -123,7 +208,7 @@ Future<void> _updateRecommended() async {
             ),
             const SizedBox(height: 16),
 
-            // 🔍 Search Bar
+            // Search Bar
             custom.SearchBar(
               controller: _searchController,
               products: _allProducts,
@@ -223,6 +308,18 @@ Future<void> _updateRecommended() async {
                 },
               ),
             ],
+
+            if (_isOffline && _allProducts.isEmpty) ...[
+              const SizedBox(height: 32),
+              Center(
+                child: Text(
+                  'No store products found.\nReconnect to view listings.',
+                  style: TextStyle(color: Colors.grey, fontSize: 16),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ]
+
           ],
         ),
       ),

@@ -12,7 +12,7 @@ class AuthViewModel extends ChangeNotifier {
   String? get error => _error;
 
   Future<User?> login(String email, String password) async {
-    _setLoading(true);
+    setLoading(true);
     try {
       final user = await _authService.login(email, password);
       _setError(null);
@@ -21,12 +21,12 @@ class AuthViewModel extends ChangeNotifier {
       _setError(e.toString());
       return null;
     } finally {
-      _setLoading(false);
+      setLoading(false);
     }
   }
 
   Future<User?> register(String email, String password) async {
-    _setLoading(true);
+   setLoading(true);
     try {
       final user = await _authService.register(email, password);
       _setError(null);
@@ -35,11 +35,11 @@ class AuthViewModel extends ChangeNotifier {
       _setError(e.toString());
       return null;
     } finally {
-      _setLoading(false);
+    setLoading(false);
     }
   }
 
-  void _setLoading(bool val) {
+  void setLoading(bool val) {
     _loading = val;
     notifyListeners();
   }
