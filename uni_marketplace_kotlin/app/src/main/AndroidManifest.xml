@@ -17,7 +17,9 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Uni_matketplace_kotlin"
         tools:targetApi="31">
-
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="@string/google_maps_key" />
         <!-- SplashActivity en su paquete correcto -->
         <activity
             android:name=".ui.auth.SplashActivity"
@@ -45,5 +47,7 @@
             android:exported="true" />
 
     </application>
+
+
 
 </manifest>
