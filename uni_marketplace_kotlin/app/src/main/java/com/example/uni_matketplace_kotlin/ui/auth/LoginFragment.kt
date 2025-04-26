@@ -1,5 +1,8 @@
 package com.example.uni_matketplace_kotlin.ui.auth
 
+import android.content.Context
+import android.net.ConnectivityManager
+import android.net.NetworkInfo
 import SessionViewModel
 import android.content.Intent
 import android.os.Bundle
@@ -13,6 +16,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import androidx.core.content.edit
 
 class LoginActivity : AppCompatActivity() {
 
@@ -46,13 +50,18 @@ class LoginActivity : AppCompatActivity() {
     }
 
     private fun loginUser(email: String, password: String) {
+        if (!isInternetAvailable()) {
+            Toast.makeText(this, "No internet connection. Please try again later.", Toast.LENGTH_LONG).show()
+            return
+        }
+
         CoroutineScope(Dispatchers.Main).launch {
             try {
                 auth.signInWithEmailAndPassword(email, password).await()
 
-                val editor = getSharedPreferences("user_prefs", MODE_PRIVATE).edit()
-                editor.putBoolean("is_logged_in", true)
-                editor.apply()
+                getSharedPreferences("user_prefs", MODE_PRIVATE).edit() {
+                    putBoolean("is_logged_in", true)
+                }
 
                 Toast.makeText(this@LoginActivity, "Login successful", Toast.LENGTH_SHORT).show()
                 startActivity(Intent(this@LoginActivity, MainActivity::class.java))
@@ -61,6 +70,13 @@ class LoginActivity : AppCompatActivity() {
                 Toast.makeText(this@LoginActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
             }
         }
+    }
+
+
+    private fun isInternetAvailable(): Boolean {
+        val connectivityManager = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val activeNetwork = connectivityManager.activeNetworkInfo
+        return activeNetwork != null && activeNetwork.isConnected
     }
 
 
