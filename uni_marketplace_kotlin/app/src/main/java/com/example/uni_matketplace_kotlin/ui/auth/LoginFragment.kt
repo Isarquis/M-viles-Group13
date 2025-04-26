@@ -13,7 +13,6 @@ import androidx.appcompat.app.AppCompatActivity
 import com.example.uni_matketplace_kotlin.MainActivity
 import com.example.uni_matketplace_kotlin.databinding.ActivityLoginBinding
 import com.google.firebase.auth.FirebaseAuth
-import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
