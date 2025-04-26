@@ -3,6 +3,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
 import 'dart:math';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'dart:async';
 import '../viewmodels/nearby_products_viewmodel.dart';
 import '../widgets/selected_product_preview.dart';
 import '../viewmodels/profile_viewmodel.dart';
@@ -22,11 +23,14 @@ class _NearbyProductsMapState extends State<NearbyProductsMap> with AutomaticKee
   bool mapLoaded = false;
   bool hasConnection = true;
 
+  StreamSubscription<ConnectivityResult>? _connectivitySubscription;
+
   @override
   bool get wantKeepAlive => true;
 
   void monitorConnection() {
-    Connectivity().onConnectivityChanged.listen((ConnectivityResult result) {
+    _connectivitySubscription = Connectivity().onConnectivityChanged.listen((ConnectivityResult result) {
+      if (!mounted) return;
       setState(() {
         hasConnection = result != ConnectivityResult.none;
       });
@@ -59,6 +63,12 @@ class _NearbyProductsMapState extends State<NearbyProductsMap> with AutomaticKee
   }
 
   @override
+  void dispose() {
+    _connectivitySubscription?.cancel();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     super.build(context);
     if (!hasConnection && !mapLoaded) {
@@ -76,7 +86,9 @@ class _NearbyProductsMapState extends State<NearbyProductsMap> with AutomaticKee
     final viewModel = Provider.of<NearbyProductsViewModel>(context);
     if (viewModel.selectedProduct != null && _mapController != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || _mapController == null) return;
         _mapController!.getZoomLevel().then((zoom) {
+          if (!mounted) return;
           final adjustedDelta = 0.01 / pow(2, zoom - 14);
           _mapController!.animateCamera(
             CameraUpdate.newLatLng(
@@ -86,6 +98,8 @@ class _NearbyProductsMapState extends State<NearbyProductsMap> with AutomaticKee
               ),
             ),
           );
+        }).catchError((_) {
+          // Handle error if needed
         });
       });
     }
@@ -128,9 +142,12 @@ class _NearbyProductsMapState extends State<NearbyProductsMap> with AutomaticKee
                   ),
                   if (viewModel.selectedProduct != null)
                     FutureBuilder(
-                      future: FirestoreService().getUser(
-                        viewModel.selectedProduct!.ownerId ?? '',
-                      ),
+                      future: (() {
+                        print('Fetching seller data for ownerId: ${viewModel.selectedProduct!.ownerId}');
+                        return FirestoreService().getUser(
+                          viewModel.selectedProduct!.ownerId ?? '',
+                        );
+                      })(),
                       builder: (context, snapshot) {
                         if (!hasConnection) {
                           return Positioned(

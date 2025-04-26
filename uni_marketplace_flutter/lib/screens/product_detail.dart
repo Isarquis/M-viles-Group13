@@ -9,6 +9,7 @@ import '../widgets/show_bidders.dart';
 import '../widgets/place_rent_offer.dart';
 import '../viewmodels/product_detail_viewmodel.dart';
 import '../widgets/show_rent_offerers.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 Map<String, dynamic> fallbackProduct = {
   'name': 'Cargando...',
@@ -61,10 +62,8 @@ class _ProductDetailState extends State<ProductDetail> {
     return (highest * 1.05).ceil();
   }
 
-  void handleAction(String type) {
-
+  void handleAction(String type, ProductDetailViewModel viewModel) {
     FirestoreService().logFeatureUsage('button_$type');
-
     if (type == 'Bidding') {
       setState(() {
         showPlaceBid = true;
@@ -77,6 +76,39 @@ class _ProductDetailState extends State<ProductDetail> {
         showPlaceBid = false;
         showBidders = false;
       });
+    } else if (type == 'Buy') {
+      final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+      if (currentUserId != null && viewModel.product != null) {
+        final ownerId = viewModel.product!['ownerId'];
+        final price = viewModel.product!['price'];
+
+        if (ownerId == null || price == null) {
+          print('❗ Missing product data: ownerId=$ownerId, price=$price');
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('❗ Error: Missing product data')),
+          );
+          return;
+        }
+
+        print('🛒 Starting purchase process...');
+        FirestoreService().updateProductStatus(widget.productId, 'Sold').then((_) {
+          print('✅ Product status updated to Sold. Creating sale transaction...');
+          return FirestoreService().createSaleTransaction(
+            buyerId: currentUserId,
+            sellerId: ownerId,
+            productId: widget.productId,
+            price: price,
+          );
+        }).then((_) {
+          print('🎉 Sale transaction created successfully. Redirecting to profile...');
+          Navigator.pushReplacementNamed(context, '/profile');
+        }).catchError((e) {
+          print('❌ Error during purchase process: $e');
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('❌ Error completing the purchase')),
+          );
+        });
+      }
     }
   }
 
@@ -167,7 +199,7 @@ class _ProductDetailState extends State<ProductDetail> {
                     ProductActionButtons(
                       types: typesList,
                       selectedType: typesList.isNotEmpty ? typesList.first : '',
-                      onPressed: handleAction,
+                      onPressed: (type) => handleAction(type, viewModel),
                     ),
                     if (showPlaceRentOffer) ...[
                       PlaceRentOfferSection(
