@@ -12,6 +12,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import android.content.Context
+import android.net.ConnectivityManager
+import android.net.NetworkInfo
 
 class RegisterActivity : AppCompatActivity() {
 
@@ -52,6 +55,11 @@ class RegisterActivity : AppCompatActivity() {
     }
 
     private fun registerUser(email: String, password: String, name: String, phone: String) {
+        if (!isInternetAvailable()) {
+            Toast.makeText(this, "No internet connection. Please try again later.", Toast.LENGTH_LONG).show()
+            return
+        }
+
         CoroutineScope(Dispatchers.Main).launch {
             try {
                 val userCredential = auth.createUserWithEmailAndPassword(email, password).await()
@@ -75,7 +83,15 @@ class RegisterActivity : AppCompatActivity() {
         }
     }
 
+
     fun onLoginClick(view: View) {
         startActivity(Intent(this, LoginActivity::class.java))
     }
+
+    private fun isInternetAvailable(): Boolean {
+        val connectivityManager = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val activeNetwork = connectivityManager.activeNetworkInfo
+        return activeNetwork != null && activeNetwork.isConnected
+    }
+
 }
