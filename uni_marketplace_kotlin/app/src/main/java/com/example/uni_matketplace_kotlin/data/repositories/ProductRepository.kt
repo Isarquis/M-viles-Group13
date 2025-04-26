@@ -81,4 +81,20 @@ class ProductRepository(
             productDao.getAll().map { it.toDomain() }
         }
     }
+    suspend fun getClosestProductProductsList(): List<Product> {
+        return if (InternetHelper.isInternetAvailable(context)) {
+            try {
+                val snapshot = productsCollection.get().await()
+                snapshot.documents.mapNotNull { doc ->
+                    doc.toObject(Product::class.java)?.copy(id = doc.id)
+                }
+            } catch (e: Exception) {
+                Log.e("ProductRepository", "Error obteniendo productos", e)
+                emptyList()
+            }
+        } else {
+            productDao.getAll().map { it.toDomain() }
+        }
+    }
+
 }

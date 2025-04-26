@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.google.android.libraries.mapsplatform.secrets.gradle.plugin)
     id("com.google.devtools.ksp") version "1.9.24-1.0.20"
+    id("kotlin-kapt")
 }
 
 android {
@@ -72,4 +73,7 @@ dependencies {
     implementation("androidx.room:room-ktx:2.5.0")
     ksp("androidx.room:room-compiler:2.6.1")
     implementation ("androidx.room:room-testing:2.5.1")
+    implementation ("com.github.bumptech.glide:glide:4.16.0")
+    kapt ("com.github.bumptech.glide:compiler:4.16.0")
+
 }
