@@ -1,5 +1,6 @@
 package com.example.uni_matketplace_kotlin.ui.auth
 
+import AnalyticsRepository
 import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkInfo
@@ -12,6 +13,7 @@ import androidx.appcompat.app.AppCompatActivity
 import com.example.uni_matketplace_kotlin.MainActivity
 import com.example.uni_matketplace_kotlin.databinding.ActivityLoginBinding
 import com.google.firebase.auth.FirebaseAuth
+import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -23,6 +25,9 @@ class LoginActivity : AppCompatActivity() {
     private lateinit var binding: ActivityLoginBinding
     private lateinit var auth: FirebaseAuth
     private val sessionViewModel: SessionViewModel by viewModels()
+    private var featureUsageId: String? = null
+    private val analyticsRepository = AnalyticsRepository()
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -82,11 +87,14 @@ class LoginActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        sessionViewModel.logEvent("enter", "login")
+        featureUsageId = analyticsRepository.saveFeatureEntry("LoginScreen")
+
     }
 
     override fun onPause() {
         super.onPause()
-        sessionViewModel.logEvent("exit", "login")
+        featureUsageId?.let { id ->
+            analyticsRepository.saveFeatureExit(id)
+        }
     }
 }

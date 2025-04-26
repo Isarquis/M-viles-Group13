@@ -12,9 +12,18 @@ class LocalProductEntity (
     val image: String,
     val userId: String,
     val status: String,
-    val category: String)
+    val category: String,
+    val isBuy: Boolean = false,
+    val isRent: Boolean = false,
+    val isEarn: Boolean = false,
+    val isBidding: Boolean = false)
 
 fun LocalProductEntity.toDomain(): Product {
+    val types = mutableListOf<String>()
+    if (isBuy) types.add("buy")
+    if (isRent) types.add("rent")
+    if (isEarn) types.add("earn")
+    if (isBidding) types.add("bidding")
     return Product(
         id = this.id,
         title = this.title,
