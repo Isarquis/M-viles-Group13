@@ -1,5 +1,6 @@
 package com.example.uni_matketplace_kotlin.ui.auth
 
+import AnalyticsRepository
 import SessionViewModel
 import android.content.Intent
 import android.os.Bundle
@@ -17,7 +18,8 @@ class LoginActivity : AppCompatActivity() {
     private lateinit var binding: ActivityLoginBinding
     private lateinit var auth: FirebaseAuth
     private val sessionViewModel: SessionViewModel by viewModels()
-
+    private var featureUsageId: String? = null
+    private val analyticsRepository = AnalyticsRepository()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -57,12 +59,15 @@ class LoginActivity : AppCompatActivity() {
     //Analytics Pipeline
     override fun onResume() {
         super.onResume()
-        sessionViewModel.logEvent("enter", "login")
+        featureUsageId = analyticsRepository.saveFeatureEntry("SearchScreen")
+
     }
 
     override fun onPause() {
         super.onPause()
-        sessionViewModel.logEvent("exit", "login")
+        featureUsageId?.let { id ->
+            analyticsRepository.saveFeatureExit(id)
+        }
     }
 
 }

@@ -1,5 +1,6 @@
 package com.example.uni_matketplace_kotlin.ui.map
 
+import AnalyticsRepository
 import SessionViewModel
 import android.Manifest
 import android.content.pm.PackageManager
@@ -35,7 +36,8 @@ class MapsFragment : Fragment(), OnMapReadyCallback, GoogleMap.OnMyLocationButto
     private var _binding: FragmentMapsBinding? = null
     private val binding get() = _binding!!
     private lateinit var mMap: GoogleMap
-
+    private var featureUsageId: String? = null
+    private val analyticsRepository = AnalyticsRepository()
     private val mapsViewModel: MapsViewModel by viewModels {
         MapsViewModelFactory(requireContext())
     }
@@ -91,13 +93,14 @@ class MapsFragment : Fragment(), OnMapReadyCallback, GoogleMap.OnMyLocationButto
     // Anaalytics Pipeline
     override fun onResume() {
         super.onResume()
-        sessionViewModel.logEvent("enter", "map")
+        featureUsageId = analyticsRepository.saveFeatureEntry("MapScreen")
     }
 
     override fun onPause() {
         super.onPause()
-        sessionViewModel.logEvent("exit", "map")
-    }
+        featureUsageId?.let { id ->
+            analyticsRepository.saveFeatureExit(id)
+        }    }
 
     //Addition
     private fun moverCamaraALaUbicacion(callback: (LatLng) -> Unit) {
@@ -218,4 +221,5 @@ class MapsFragment : Fragment(), OnMapReadyCallback, GoogleMap.OnMyLocationButto
             }
         }
     }
+
 }

@@ -1,5 +1,6 @@
 package com.example.uni_matketplace_kotlin.ui.search
 
+import AnalyticsRepository
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -8,10 +9,6 @@ import android.widget.ArrayAdapter
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.uni_marketplace_kotlin.ui.search.adapter.ProductAdapter
 import com.example.uni_matketplace_kotlin.data.repositories.ProductRepository
@@ -24,7 +21,8 @@ class SearchFragment : Fragment() {
 
     private var _binding: FragmentSearchBinding? = null
     private val binding get() = _binding!!
-
+    private var featureUsageId: String? = null
+    private val analyticsRepository = AnalyticsRepository()
     private val viewModel: SearchViewModel by viewModels()
 
     private lateinit var adapter: ProductAdapter
@@ -89,6 +87,17 @@ class SearchFragment : Fragment() {
             errorMessage?.let {
                 Toast.makeText(requireContext(), it, Toast.LENGTH_SHORT).show()
             }
+        }
+    }
+    override fun onResume() {
+        super.onResume()
+        featureUsageId = analyticsRepository.saveFeatureEntry("DiscoveryScreen")
+    }
+
+    override fun onPause() {
+        super.onPause()
+        featureUsageId?.let { id ->
+            analyticsRepository.saveFeatureExit(id)
         }
     }
 

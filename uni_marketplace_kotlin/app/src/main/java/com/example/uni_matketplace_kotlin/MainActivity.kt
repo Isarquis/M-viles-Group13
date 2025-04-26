@@ -1,5 +1,6 @@
 package com.example.uni_matketplace_kotlin
 
+import AnalyticsRepository
 import android.content.Intent
 import android.os.Bundle
 import android.view.MenuItem
@@ -18,10 +19,12 @@ import dagger.hilt.android.HiltAndroidApp
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     lateinit var database: AppDatabase
+    private var featureUsageId: String? = null
+    private val analyticsRepository = AnalyticsRepository()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        database=AppDatabase.getDatabase(applicationContext)
+        database = AppDatabase.getDatabase(applicationContext)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
@@ -47,59 +50,9 @@ class MainActivity : AppCompatActivity() {
             } else {
                 binding.navView.visibility = View.VISIBLE
             }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
         }
-
 
     }
 
-
 }
+
