@@ -1,10 +1,11 @@
 plugins {
-    id("com.google.gms.google-services")
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.google.android.libraries.mapsplatform.secrets.gradle.plugin)
-    id("com.google.devtools.ksp") version "1.9.24-1.0.20"
+    id("com.google.gms.google-services")
+    id("com.google.devtools.ksp")
     id("kotlin-kapt")
+    id("com.google.dagger.hilt.android")
 }
 
 android {
@@ -47,8 +48,13 @@ android {
 }
 
 dependencies {
+    // Firebase
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.analytics)
+    implementation(libs.firebase.auth.ktx)
+    implementation(libs.firebase.firestore.ktx)
+
+    // AndroidX y Material
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
@@ -57,23 +63,28 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
     implementation(libs.androidx.navigation.fragment.ktx)
     implementation(libs.androidx.navigation.ui.ktx)
-    implementation(libs.firebase.auth.ktx)
-    implementation(libs.play.services.maps)
+    implementation("androidx.cardview:cardview:1.0.0")
+
+    // Google Maps y Location
+    implementation("com.google.android.gms:play-services-maps:18.0.1")
     implementation(libs.play.services.location)
-    implementation(libs.firebase.firestore.ktx)
+
+    // Room
+    implementation("androidx.room:room-runtime:2.6.1")
+    implementation("androidx.room:room-ktx:2.6.1")
+    ksp("androidx.room:room-compiler:2.6.1")
+    testImplementation("androidx.room:room-testing:2.6.1")
+
+    // Glide (versión única)
+    implementation("com.github.bumptech.glide:glide:4.16.0")
+    kapt("com.github.bumptech.glide:compiler:4.16.0")
+
+    // Hilt
+    implementation("com.google.dagger:hilt-android:2.48")
+    kapt("com.google.dagger:hilt-android-compiler:2.48")
+
+    // Testing
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
-
-    implementation("com.google.android.gms:play-services-maps:18.0.1")
-    implementation("androidx.cardview:cardview:1.0.0")
-    implementation("com.github.bumptech.glide:glide:4.15.1")
-    annotationProcessor("com.github.bumptech.glide:compiler:4.15.1")
-    implementation("androidx.room:room-runtime:2.5.0")
-    implementation("androidx.room:room-ktx:2.5.0")
-    ksp("androidx.room:room-compiler:2.6.1")
-    implementation ("androidx.room:room-testing:2.5.1")
-    implementation ("com.github.bumptech.glide:glide:4.16.0")
-    kapt ("com.github.bumptech.glide:compiler:4.16.0")
-
 }

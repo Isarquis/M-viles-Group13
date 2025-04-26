@@ -8,11 +8,18 @@ import android.widget.ArrayAdapter
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.example.uni_marketplace_kotlin.ui.search.SearchViewModel
 import com.example.uni_marketplace_kotlin.ui.search.adapter.ProductAdapter
+import com.example.uni_matketplace_kotlin.data.repositories.ProductRepository
 import com.example.uni_matketplace_kotlin.databinding.FragmentSearchBinding
-
+import com.example.uni_matketplace_kotlin.ui.viewmodel.SearchViewModel
+import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
+@AndroidEntryPoint
 class SearchFragment : Fragment() {
 
     private var _binding: FragmentSearchBinding? = null
@@ -34,9 +41,11 @@ class SearchFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         setupRecyclerView()
-        setupFilters()
         setupListeners()
         observeViewModel()
+        viewModel.loadFirstProducts()
+
+        viewModel.loadProductsByType("")  // Esto cargaría todos los productos por defecto
     }
 
     private fun setupRecyclerView() {
@@ -45,36 +54,41 @@ class SearchFragment : Fragment() {
         binding.rvProducts.adapter = adapter
     }
 
-    private fun setupFilters() {
-        val categories = listOf("Math", "Science", "History", "Other")
-        val categoryAdapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, categories)
-        categoryAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        binding.spinnerCategory.adapter = categoryAdapter
-    }
-
     private fun setupListeners() {
         binding.btnBuy.setOnClickListener {
-            viewModel.setTypeFilter("buy")
+            viewModel.loadProductsByType("Buy")
         }
 
         binding.btnRent.setOnClickListener {
-            viewModel.setTypeFilter("rent")
+            viewModel.loadProductsByType("Rent")
         }
 
-        binding.btnSearch.setOnClickListener {
-            val query = binding.etSearch.text.toString()
-            val category = binding.spinnerCategory.selectedItem?.toString() ?: ""
-            if (query.isBlank()) {
-                Toast.makeText(requireContext(), "Please enter something to search.", Toast.LENGTH_SHORT).show()
-            } else {
-                viewModel.searchProducts(query, category)
-            }
+        binding.btnEarn.setOnClickListener {
+            viewModel.loadProductsByType("Earn")
         }
     }
 
     private fun observeViewModel() {
+
+        viewModel.loading.observe(viewLifecycleOwner) { isLoading ->
+            binding.progressBar.visibility = if (isLoading) View.VISIBLE else View.GONE
+        }
+        viewModel.firstProducts.observe(viewLifecycleOwner) { products ->
+            if(products.isNotEmpty()){
+                adapter.submitList(products)
+            }
+        }
         viewModel.products.observe(viewLifecycleOwner) { products ->
+            if (products.isEmpty()) {
+                Toast.makeText(requireContext(), "No se encontraron productos.", Toast.LENGTH_SHORT).show()
+            }
             adapter.submitList(products)
+        }
+
+        viewModel.error.observe(viewLifecycleOwner) { errorMessage ->
+            errorMessage?.let {
+                Toast.makeText(requireContext(), it, Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
@@ -83,3 +97,7 @@ class SearchFragment : Fragment() {
         _binding = null
     }
 }
+
+
+
+

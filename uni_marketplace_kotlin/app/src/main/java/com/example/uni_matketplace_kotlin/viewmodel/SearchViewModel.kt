@@ -1,57 +1,55 @@
-package com.example.uni_marketplace_kotlin.ui.search
+package com.example.uni_matketplace_kotlin.ui.viewmodel
 
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
+import android.app.Application
+import androidx.lifecycle.*
 import com.example.uni_matketplace_kotlin.data.remote.entities.Product
 import com.example.uni_matketplace_kotlin.data.repositories.ProductRepository
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class SearchViewModel(
+@HiltViewModel
+class SearchViewModel @Inject constructor(
+    application: Application,
     private val productRepository: ProductRepository
-) : ViewModel() {
+) : AndroidViewModel(application) {
 
-    private val _products = MutableStateFlow<List<Product>>(emptyList())
-    val products: StateFlow<List<Product>> = _products
+    private val _products = MutableLiveData<List<Product>>()
+    val products: LiveData<List<Product>> = _products
 
-    private val _filteredProducts = MutableStateFlow<List<Product>>(emptyList())
-    val filteredProducts: StateFlow<List<Product>> = _filteredProducts
+    private val _loading = MutableLiveData<Boolean>()
+    val loading: LiveData<Boolean> = _loading
 
-    private val _isLoading = MutableStateFlow(false)
-    val isLoading: StateFlow<Boolean> = _isLoading
+    private val _error = MutableLiveData<String?>()
+    val error: LiveData<String?> = _error
 
-    init {
-        loadAllProducts()
-    }
+    private val _firstProducts = MutableLiveData<List<Product>>()
+    val firstProducts: LiveData<List<Product>> = _firstProducts
 
-    private fun loadAllProducts() {
+    fun loadProductsByType(type: String) {
         viewModelScope.launch {
-            _isLoading.value = true
+            _loading.value = true
+            _error.value = null
             try {
-                val allProducts = productRepository.getClosestProductProductsList()
-                _products.value = allProducts
-                _filteredProducts.value = allProducts
+                val result = productRepository.getFilteredProducts(type)
+                _products.value = result
             } catch (e: Exception) {
+                _error.value = "Error al cargar productos: ${e.message}"
+                _products.value = emptyList()
             } finally {
-                _isLoading.value = false
+                _loading.value = false
             }
         }
     }
 
-    fun searchProducts(query: String) {
-        val lowercaseQuery = query.trim().lowercase()
-        _filteredProducts.value = if (lowercaseQuery.isEmpty()) {
-            _products.value
-        } else {
-            _products.value.filter { product ->
-                product.title?.lowercase()?.contains(lowercaseQuery) == true ||
-                        product.description?.lowercase()?.contains(lowercaseQuery) == true
-            }
+    fun loadFirstProducts() {
+        viewModelScope.launch {
+            val products = productRepository.getClosestProductProductsList()
+            _firstProducts.postValue(products)
         }
     }
 
-    fun filterByType(type: String) {
-        _filteredProducts.value = _products.value.filter { it.type.equals(type) }
+    fun clearError() {
+        _error.value = null
     }
 }

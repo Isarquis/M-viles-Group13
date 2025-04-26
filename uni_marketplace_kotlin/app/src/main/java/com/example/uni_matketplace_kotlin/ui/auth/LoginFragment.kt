@@ -10,6 +10,7 @@ import androidx.fragment.app.viewModels
 import com.example.uni_matketplace_kotlin.MainActivity
 import com.example.uni_matketplace_kotlin.databinding.ActivityLoginBinding
 import com.google.firebase.auth.FirebaseAuth
+import dagger.hilt.android.HiltAndroidApp
 
 class LoginActivity : AppCompatActivity() {
 

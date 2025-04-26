@@ -12,8 +12,9 @@ import androidx.navigation.ui.setupActionBarWithNavController
 import androidx.navigation.ui.setupWithNavController
 import com.example.uni_matketplace_kotlin.data.local.AppDatabase
 import com.example.uni_matketplace_kotlin.databinding.ActivityMainBinding
-
-
+import dagger.hilt.android.AndroidEntryPoint
+import dagger.hilt.android.HiltAndroidApp
+@AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     lateinit var database: AppDatabase

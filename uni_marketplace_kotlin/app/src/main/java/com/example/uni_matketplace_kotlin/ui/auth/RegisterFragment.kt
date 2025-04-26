@@ -6,6 +6,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.example.uni_matketplace_kotlin.databinding.ActivityRegisterBinding
 import com.google.firebase.auth.FirebaseAuth
+import dagger.hilt.android.HiltAndroidApp
 
 class RegisterActivity : AppCompatActivity() {
 

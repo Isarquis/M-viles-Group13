@@ -4,8 +4,8 @@ import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
-import com.example.uni_marketplace_kotlin.databinding.ItemProductBinding
 import com.example.uni_matketplace_kotlin.data.remote.entities.Product
+import com.example.uni_matketplace_kotlin.databinding.ItemProductBinding
 
 class ProductAdapter : RecyclerView.Adapter<ProductAdapter.ProductViewHolder>() {
 
