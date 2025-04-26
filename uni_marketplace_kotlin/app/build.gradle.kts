@@ -84,11 +84,16 @@ dependencies {
     kapt("com.google.dagger:hilt-android-compiler:2.48")
 
     // Testing
+    implementation(libs.firebase.firestore.ktx)
+    implementation(libs.firebase.database.ktx)
+    implementation(libs.firebase.database)
+    implementation(libs.firebase.firestore)
+    implementation(libs.play.services.analytics.impl)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
 
     // Realm
-    implementation("io.realm.kotlin:library-base:1.13.0")  // Asegúrate de tener la última versión
+    implementation("io.realm.kotlin:library-base:1.13.0")  
 }
 

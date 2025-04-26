@@ -1,17 +1,24 @@
 package com.example.uni_matketplace_kotlin.ui.auth
 
 import AnalyticsRepository
+import android.content.Context
+import android.net.ConnectivityManager
+import android.net.NetworkInfo
 import SessionViewModel
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
-import androidx.fragment.app.viewModels
 import com.example.uni_matketplace_kotlin.MainActivity
 import com.example.uni_matketplace_kotlin.databinding.ActivityLoginBinding
 import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.HiltAndroidApp
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
+import androidx.core.content.edit
 
 class LoginActivity : AppCompatActivity() {
 
@@ -21,45 +28,66 @@ class LoginActivity : AppCompatActivity() {
     private var featureUsageId: String? = null
     private val analyticsRepository = AnalyticsRepository()
 
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityLoginBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Inicializar Firebase Auth
         auth = FirebaseAuth.getInstance()
+
+        // We no longer check if the user is logged in here, SplashActivity does it
 
         binding.btnLogin.setOnClickListener {
             val email = binding.etEmail.text.toString().trim()
             val password = binding.etPassword.text.toString().trim()
 
             if (email.isNotEmpty() && password.isNotEmpty()) {
-                auth.signInWithEmailAndPassword(email, password)
-                    .addOnCompleteListener { task ->
-                        if (task.isSuccessful) {
-                            Toast.makeText(this, "Login exitoso", Toast.LENGTH_SHORT).show()
-                            // Ir al dashboard o actividad principal
-                            startActivity(Intent(this, MainActivity::class.java))
-                            finish()
-                        } else {
-                            Toast.makeText(this, "Error: ${task.exception?.message}", Toast.LENGTH_SHORT).show()
-                        }
-                    }
+                loginUser(email, password)
             } else {
-                Toast.makeText(this, "Por favor ingresa email y contraseña", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Please enter email and password", Toast.LENGTH_SHORT).show()
             }
         }
 
-        binding.btnGoToRegister.setOnClickListener {
-            // Navegar a la pantalla de registro
+        binding.tvRegister.setOnClickListener {
             startActivity(Intent(this, RegisterActivity::class.java))
         }
     }
 
-    //Analytics Pipeline
+    private fun loginUser(email: String, password: String) {
+        if (!isInternetAvailable()) {
+            Toast.makeText(this, "No internet connection. Please try again later.", Toast.LENGTH_LONG).show()
+            return
+        }
+
+        CoroutineScope(Dispatchers.Main).launch {
+            try {
+                auth.signInWithEmailAndPassword(email, password).await()
+
+                getSharedPreferences("user_prefs", MODE_PRIVATE).edit() {
+                    putBoolean("is_logged_in", true)
+                }
+
+                Toast.makeText(this@LoginActivity, "Login successful", Toast.LENGTH_SHORT).show()
+                startActivity(Intent(this@LoginActivity, MainActivity::class.java))
+                finish()
+            } catch (e: Exception) {
+                Toast.makeText(this@LoginActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+
+    private fun isInternetAvailable(): Boolean {
+        val connectivityManager = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val activeNetwork = connectivityManager.activeNetworkInfo
+        return activeNetwork != null && activeNetwork.isConnected
+    }
+
+
     override fun onResume() {
         super.onResume()
-        featureUsageId = analyticsRepository.saveFeatureEntry("SearchScreen")
+        featureUsageId = analyticsRepository.saveFeatureEntry("LoginScreen")
 
     }
 
@@ -69,5 +97,4 @@ class LoginActivity : AppCompatActivity() {
             analyticsRepository.saveFeatureExit(id)
         }
     }
-
 }
