@@ -13,11 +13,15 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
+import androidx.lifecycle.ViewModelProvider
 import com.example.uni_matketplace_kotlin.R
 import com.example.uni_matketplace_kotlin.databinding.FragmentMapsBinding
-import com.example.uni_matketplace_kotlin.data.location.LocationHelper
+import com.example.uni_matketplace_kotlin.data.LocationHelper
+import com.example.uni_matketplace_kotlin.data.repositories.ProductRepository
+import com.example.uni_matketplace_kotlin.data.repositories.UserRepository
 import com.example.uni_matketplace_kotlin.utils.NetworkUtils
 import com.example.uni_matketplace_kotlin.viewmodel.MapsViewModel
+import com.example.uni_matketplace_kotlin.viewmodel.MapsViewModelFactory
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
@@ -31,7 +35,11 @@ class MapsFragment : Fragment(), OnMapReadyCallback, GoogleMap.OnMyLocationButto
     private var _binding: FragmentMapsBinding? = null
     private val binding get() = _binding!!
     private lateinit var mMap: GoogleMap
-    private val mapsViewModel: MapsViewModel by viewModels()
+
+    private val mapsViewModel: MapsViewModel by viewModels {
+        MapsViewModelFactory(requireContext())
+    }
+
     private var closestUserMarker: com.google.android.gms.maps.model.Marker? = null
     private val nearbyMarkers = mutableListOf<com.google.android.gms.maps.model.Marker>()
     private val sessionViewModel: SessionViewModel by viewModels()
@@ -66,7 +74,6 @@ class MapsFragment : Fragment(), OnMapReadyCallback, GoogleMap.OnMyLocationButto
         }
     }
 
-
     override fun onMapReady(googleMap: GoogleMap) {
         mMap = googleMap
         mMap.setOnMyLocationButtonClickListener(this)
@@ -77,6 +84,7 @@ class MapsFragment : Fragment(), OnMapReadyCallback, GoogleMap.OnMyLocationButto
             mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(currentLocation, 14.0f))
             mapsViewModel.loadNearbyUsers(currentLocation)
             mapsViewModel.loadClosestProduct(currentLocation)
+            mapsViewModel.loadClosestUser(currentLocation)
         }
     }
 
@@ -92,7 +100,6 @@ class MapsFragment : Fragment(), OnMapReadyCallback, GoogleMap.OnMyLocationButto
     }
 
     //Addition
-
     private fun moverCamaraALaUbicacion(callback: (LatLng) -> Unit) {
         if (!isPermissionsGranted()) return
 
@@ -116,8 +123,8 @@ class MapsFragment : Fragment(), OnMapReadyCallback, GoogleMap.OnMyLocationButto
         }
     }
 
-    //Permissions
 
+    //Permissions
 
     private fun isPermissionsGranted(): Boolean {
         return ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
@@ -158,7 +165,6 @@ class MapsFragment : Fragment(), OnMapReadyCallback, GoogleMap.OnMyLocationButto
         mapsViewModel.closestUser.observe(viewLifecycleOwner) { user ->
             if (user?.location != null && ::mMap.isInitialized) {
                 val userLatLng = LatLng(user.location.latitude, user.location.longitude)
-
                 closestUserMarker?.remove()
                 closestUserMarker = mMap.addMarker(
                     MarkerOptions()
@@ -166,17 +172,14 @@ class MapsFragment : Fragment(), OnMapReadyCallback, GoogleMap.OnMyLocationButto
                         .title(user.name)
                         .snippet("Tel: ${user.phone}")
                 )
-
                 mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(userLatLng, 15f))
                 binding.userName.text = user.name
                 binding.userContact.text = user.phone
             }
         }
-
     }
 
-    private fun observerClosestProduct(){
-
+    private fun observerClosestProduct() {
         mapsViewModel.closestProduct.observe(viewLifecycleOwner) { product ->
             if (product != null) {
                 binding.productName.text = "Producto: ${product.title}"
@@ -185,10 +188,8 @@ class MapsFragment : Fragment(), OnMapReadyCallback, GoogleMap.OnMyLocationButto
                     binding.userDistance.text = "Distance to you: ${"%.0f".format(distance)}m"
                 }
             } else {
-
                 closestUserMarker?.remove()
                 closestUserMarker = null
-
                 binding.productName.text = "No hay productos cerca"
                 binding.userPrice.text = ""
                 binding.userContact.text = ""
@@ -198,7 +199,7 @@ class MapsFragment : Fragment(), OnMapReadyCallback, GoogleMap.OnMyLocationButto
         }
     }
 
-    private fun observeNearUsers(){
+    private fun observeNearUsers() {
         mapsViewModel.nearbyUsers.observe(viewLifecycleOwner) { users ->
             // Limpiar marcadores anteriores
             nearbyMarkers.forEach { it.remove() }
@@ -217,5 +218,4 @@ class MapsFragment : Fragment(), OnMapReadyCallback, GoogleMap.OnMyLocationButto
             }
         }
     }
-
 }
