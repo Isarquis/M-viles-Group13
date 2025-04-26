@@ -50,7 +50,6 @@ class LoginActivity : AppCompatActivity() {
             try {
                 auth.signInWithEmailAndPassword(email, password).await()
 
-                // Save login status
                 val editor = getSharedPreferences("user_prefs", MODE_PRIVATE).edit()
                 editor.putBoolean("is_logged_in", true)
                 editor.apply()
@@ -63,6 +62,7 @@ class LoginActivity : AppCompatActivity() {
             }
         }
     }
+
 
     override fun onResume() {
         super.onResume()
