@@ -80,6 +80,7 @@ class MapsFragment : Fragment(), OnMapReadyCallback, GoogleMap.OnMyLocationButto
         }
     }
 
+
     override fun onMapReady(googleMap: GoogleMap) {
         mMap = googleMap
         mMap.setOnMyLocationButtonClickListener(this)
@@ -97,14 +98,13 @@ class MapsFragment : Fragment(), OnMapReadyCallback, GoogleMap.OnMyLocationButto
     // Anaalytics Pipeline
     override fun onResume() {
         super.onResume()
-        featureUsageId = analyticsRepository.saveFeatureEntry("MapScreen")
+        sessionViewModel.logEvent("enter", "map")
     }
 
     override fun onPause() {
         super.onPause()
-        featureUsageId?.let { id ->
-            analyticsRepository.saveFeatureExit(id)
-        }    }
+        sessionViewModel.logEvent("exit", "map")
+    }
 
     //Addition
     private fun moverCamaraALaUbicacion(callback: (LatLng) -> Unit) {

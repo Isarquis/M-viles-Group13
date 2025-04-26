@@ -53,21 +53,24 @@ class ProductRepository @Inject constructor(
     suspend fun getClosestProduct(currentLocation: LatLng): Product? {
         val products = getAllProducts()
 
-        return products.minByOrNull { product ->
+        val nearbyProducts = products.mapNotNull { product ->
             val userLocation = userRepository.getUserLocation(product.ownerId)
-
             if (userLocation != null) {
                 val productLatLng = LatLng(userLocation.latitude, userLocation.longitude)
-                calculateDistance(currentLocation, productLatLng)
+                val distance = calculateDistance(currentLocation, productLatLng)
+                if (distance <= 400f) {  // Filtrar por 400 metros
+                    Pair(product, distance)
+                } else {
+                    null
+                }
             } else {
-                Float.MAX_VALUE
-            }
-        }.also {
-            if (it == null) {
-                Log.e("ProductRepository", "No se encontró un producto cercano")
+                null
             }
         }
+
+        return nearbyProducts.minByOrNull { it.second }?.first  // De los filtrados, tomar el más cercano
     }
+
 
     private fun calculateDistance(start: LatLng, end: LatLng): Float {
         val results = FloatArray(1)
