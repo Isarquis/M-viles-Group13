@@ -31,16 +31,16 @@ class FirestoreService {
       String imageUrl;
 
       if (gender.toLowerCase() == 'hombre') {
-        imageUrl = 'https://unimarketimagesbucket.s3.us-west-1.amazonaws.com/bidder1.jpg';
-      } else {
         imageUrl = 'https://unimarketimagesbucket.s3.us-west-1.amazonaws.com/bidder2.jpg';
+      } else {
+        imageUrl = 'https://unimarketimagesbucket.s3.us-west-1.amazonaws.com/bidder1.jpg';
       }
 
       final userData = {
         'email': data['email'] ?? '',
         'name': data['name'] ?? '',
         'phone': data['phone'] ?? '',
-        'profileImage': imageUrl,
+        'image': imageUrl,
         'createdAt': FieldValue.serverTimestamp(),
       };
 
@@ -173,6 +173,60 @@ class FirestoreService {
     return snapshot.docs
         .map((doc) => doc.data() as Map<String, dynamic>)
         .toList();
+  }
+
+  Future<void> createSaleTransaction({
+    required String buyerId,
+    required String sellerId,
+    required String productId,
+    required int price,
+  }) async {
+    await _db.collection('transactions').add({
+      'buyerId': buyerId,
+      'sellerId': sellerId,
+      'productId': productId,
+      'price': price,
+      'type': 'Sale',
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  Future<List<Map<String, dynamic>>> getSaleTransactionsByUser(String userId) async {
+    var snapshot = await _db
+        .collection('transactions')
+        .where('buyerId', isEqualTo: userId)
+        .where('type', isEqualTo: 'Sale')
+        .get();
+
+    return snapshot.docs
+        .map((doc) => doc.data() as Map<String, dynamic>)
+        .toList();
+  }
+
+  Future<List<Map<String, dynamic>>> getEnrichedSaleTransactionsByUser(String userId) async {
+    var snapshot = await _db
+        .collection('transactions')
+        .where('buyerId', isEqualTo: userId)
+        .where('type', isEqualTo: 'Sale')
+        .get();
+
+    List<Map<String, dynamic>> enrichedTransactions = [];
+
+    for (var doc in snapshot.docs) {
+      var transactionData = doc.data() as Map<String, dynamic>;
+      String? productId = transactionData['productId'];
+      if (productId != null) {
+        var productDoc = await _db.collection('products').doc(productId).get();
+        if (productDoc.exists) {
+          var productData = productDoc.data() as Map<String, dynamic>;
+          transactionData['productTitle'] = productData['title'] ?? '';
+          transactionData['productImage'] = productData['image'] ?? '';
+        }
+      }
+      enrichedTransactions.add(transactionData);
+    }
+
+    return enrichedTransactions;
   }
 
   Future<Product?> getProductById(String id) async {
