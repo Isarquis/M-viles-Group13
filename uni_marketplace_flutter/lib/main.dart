@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:uni_marketplace_flutter/screens/earn_list.dart';
-import 'package:uni_marketplace_flutter/screens/post_product_screen.dart';
 import 'screens/auth/login_page.dart';
 import 'screens/auth/register_page.dart';
 import 'screens/home_page.dart';
@@ -25,9 +24,13 @@ void main() async {
   await Firebase.initializeApp();
   await Hive.initFlutter();
 
+
   final firestoreService = FirestoreService();
   OfflineSyncService(firestoreService);
 
+
+  await Hive.openBox('profile_data');
+  
   runApp(
     MultiProvider(
       providers: [
