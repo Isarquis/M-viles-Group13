@@ -27,7 +27,7 @@ class LoginActivity : AppCompatActivity() {
 
         auth = FirebaseAuth.getInstance()
 
-        // Ya no verificamos si el usuario está logueado aquí, lo hace SplashActivity
+        // We no longer check if the user is logged in here, SplashActivity does it
 
         binding.btnLogin.setOnClickListener {
             val email = binding.etEmail.text.toString().trim()
@@ -36,7 +36,7 @@ class LoginActivity : AppCompatActivity() {
             if (email.isNotEmpty() && password.isNotEmpty()) {
                 loginUser(email, password)
             } else {
-                Toast.makeText(this, "Por favor ingresa email y contraseña", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Please enter email and password", Toast.LENGTH_SHORT).show()
             }
         }
 
@@ -49,7 +49,12 @@ class LoginActivity : AppCompatActivity() {
         CoroutineScope(Dispatchers.Main).launch {
             try {
                 auth.signInWithEmailAndPassword(email, password).await()
-                Toast.makeText(this@LoginActivity, "Login exitoso", Toast.LENGTH_SHORT).show()
+
+                val editor = getSharedPreferences("user_prefs", MODE_PRIVATE).edit()
+                editor.putBoolean("is_logged_in", true)
+                editor.apply()
+
+                Toast.makeText(this@LoginActivity, "Login successful", Toast.LENGTH_SHORT).show()
                 startActivity(Intent(this@LoginActivity, MainActivity::class.java))
                 finish()
             } catch (e: Exception) {
@@ -57,6 +62,7 @@ class LoginActivity : AppCompatActivity() {
             }
         }
     }
+
 
     override fun onResume() {
         super.onResume()
