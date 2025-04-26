@@ -55,7 +55,7 @@
         android:id="@+id/etSearch"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:hint="What are you looking for?"
+        android:hint="¿Qué estás buscando?"
         android:padding="8dp"
         android:background="@drawable/edittext_background"
         app:layout_constraintTop_toBottomOf="@id/spinnerCategory"

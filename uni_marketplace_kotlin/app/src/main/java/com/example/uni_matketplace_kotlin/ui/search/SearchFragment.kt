@@ -3,10 +3,13 @@ package com.example.uni_matketplace_kotlin.ui.search
 import AnalyticsRepository
 import android.os.Bundle
 import android.view.LayoutInflater
+import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.Toast
+import androidx.activity.OnBackPressedCallback
+import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -37,13 +40,23 @@ class SearchFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        setHasOptionsMenu(true)
+        (requireActivity() as AppCompatActivity).supportActionBar?.apply {
+            setDisplayHomeAsUpEnabled(true)
+            title = "Buscar productos"
+        }
+        requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                requireActivity().supportFragmentManager.popBackStack()
+            }
+        })
 
         setupRecyclerView()
         setupListeners()
         observeViewModel()
         viewModel.loadFirstProducts()
 
-        viewModel.loadProductsByType("")  // Esto cargaría todos los productos por defecto
+        viewModel.loadProductsByType("")
     }
 
     private fun setupRecyclerView() {
@@ -98,6 +111,15 @@ class SearchFragment : Fragment() {
         super.onPause()
         featureUsageId?.let { id ->
             analyticsRepository.saveFeatureExit(id)
+        }
+    }
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        return when (item.itemId) {
+            android.R.id.home -> {
+                requireActivity().onBackPressedDispatcher.onBackPressed()
+                true
+            }
+            else -> super.onOptionsItemSelected(item)
         }
     }
 
