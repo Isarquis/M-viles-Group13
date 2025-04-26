@@ -35,7 +35,12 @@
         android:label="Post"
         tools:layout="@layout/fragment_createproduct" />
 
-    <!-- Nuevo fragmento para perfil -->
+    <fragment
+        android:id="@+id/navigation_discover"
+        android:name="com.example.uni_matketplace_kotlin.ui.search.SearchFragment"
+        android:label="Post"
+        tools:layout="@layout/fragment_search" />
+
     <fragment
         android:id="@+id/navigation_profile"
         android:name="com.example.uni_matketplace_kotlin.ui.profile.ProfileFragment"

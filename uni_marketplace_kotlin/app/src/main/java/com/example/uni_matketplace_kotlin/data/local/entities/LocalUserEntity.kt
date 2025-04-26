@@ -12,16 +12,16 @@ data class LocalUserEntity(
     val email: String,
     val phone: String,
     val latitude: Double,
-    val longitude: Double
-)
+    val longitude: Double)
 
 fun LocalUserEntity.toDomain(): User {
+
     return User(
         id = this.id,
         name = this.name,
         email = this.email,
         location = GeoPoint(this.latitude, this.longitude),
-        phone = this.phone
+        phone = this.phone,
     )
 }
 

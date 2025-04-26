@@ -1,14 +1,17 @@
 package com.example.uni_matketplace_kotlin.ui.map
 
+import AnalyticsRepository
 import SessionViewModel
 import android.Manifest
 import android.content.pm.PackageManager
 import android.location.Location
 import android.os.Bundle
 import android.view.LayoutInflater
+import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
@@ -35,7 +38,8 @@ class MapsFragment : Fragment(), OnMapReadyCallback, GoogleMap.OnMyLocationButto
     private var _binding: FragmentMapsBinding? = null
     private val binding get() = _binding!!
     private lateinit var mMap: GoogleMap
-
+    private var featureUsageId: String? = null
+    private val analyticsRepository = AnalyticsRepository()
     private val mapsViewModel: MapsViewModel by viewModels {
         MapsViewModelFactory(requireContext())
     }
@@ -57,6 +61,7 @@ class MapsFragment : Fragment(), OnMapReadyCallback, GoogleMap.OnMyLocationButto
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        setHasOptionsMenu(true)
 
         val mapFragment = childFragmentManager.findFragmentById(R.id.map) as SupportMapFragment
         mapFragment.getMapAsync(this)
@@ -65,8 +70,9 @@ class MapsFragment : Fragment(), OnMapReadyCallback, GoogleMap.OnMyLocationButto
         observerClosestUser()
         observerClosestProduct()
 
-        binding.backButton.setOnClickListener {
-            requireActivity().onBackPressedDispatcher.onBackPressed()
+        (requireActivity() as AppCompatActivity).supportActionBar?.apply {
+            setDisplayHomeAsUpEnabled(true)
+            title = "Productos cerca a ti"
         }
 
         if (!NetworkUtils.isOnline(requireContext())) {
@@ -91,13 +97,14 @@ class MapsFragment : Fragment(), OnMapReadyCallback, GoogleMap.OnMyLocationButto
     // Anaalytics Pipeline
     override fun onResume() {
         super.onResume()
-        sessionViewModel.logEvent("enter", "map")
+        featureUsageId = analyticsRepository.saveFeatureEntry("MapScreen")
     }
 
     override fun onPause() {
         super.onPause()
-        sessionViewModel.logEvent("exit", "map")
-    }
+        featureUsageId?.let { id ->
+            analyticsRepository.saveFeatureExit(id)
+        }    }
 
     //Addition
     private fun moverCamaraALaUbicacion(callback: (LatLng) -> Unit) {
@@ -218,4 +225,15 @@ class MapsFragment : Fragment(), OnMapReadyCallback, GoogleMap.OnMyLocationButto
             }
         }
     }
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        return when (item.itemId) {
+            android.R.id.home -> {
+                activity?.onBackPressed()
+                true
+            }
+            else -> super.onOptionsItemSelected(item)
+        }
+    }
+
+
 }
