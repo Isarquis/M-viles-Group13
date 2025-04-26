@@ -1,15 +1,39 @@
 import 'package:flutter/material.dart';
-import 'screens/product_detail.dart';
-import 'screens/product_list.dart';
-import 'screens/test_products_screen.dart';
+import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
+import 'screens/auth/login_page.dart';
+import 'screens/auth/register_page.dart';
+import 'screens/home_page.dart';
+import 'screens/product_list.dart';
+import 'screens/product_detail.dart';
+import 'screens/post_product/post_product_screen.dart';
+import 'screens/nearby_products_map.dart';
+import 'screens/profile_view.dart';
+
 import 'widgets/custom_navbar.dart';
+import 'viewmodels/auth_viewmodel.dart';
+import 'viewmodels/nearby_products_viewmodel.dart';
+import 'services/firestore_service.dart';
+import 'package:flutter/material.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:path_provider/path_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
-  runApp(const MyApp());
+  await Hive.initFlutter();
+  
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => NearbyProductsViewModel()),
+        ChangeNotifierProvider(create: (_) => AuthViewModel()),
+      ],
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -17,16 +41,44 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool isLoggedIn = FirebaseAuth.instance.currentUser != null;
+
     return MaterialApp(
       title: 'Uni Marketplace',
       debugShowCheckedModeBanner: false,
-      home: const HomeScreen(),
+      theme: ThemeData(
+        brightness: Brightness.light,
+        scaffoldBackgroundColor: Colors.white,
+        primarySwatch: Colors.grey,
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Colors.white,
+          foregroundColor: Colors.black,
+          elevation: 0,
+        ),
+        colorScheme: const ColorScheme.light(
+          primary: Colors.black,
+          secondary: Colors.green,
+        ),
+      ),
+      initialRoute: isLoggedIn ? '/home' : '/login',
+      routes: {
+        '/login': (context) => LoginPage(),
+        '/register': (context) => RegisterPage(),
+        '/home': (context) {
+          final user = FirebaseAuth.instance.currentUser;
+          return HomeScreen(userId: user!.uid);
+        },
+
+      },
     );
   }
 }
 
+
+
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final String userId;
+  const HomeScreen({required this.userId, super.key});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -34,26 +86,53 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int currentIndex = 0;
+  final FirestoreService _firestoreService = FirestoreService();
 
-  final List<Widget> screens = [
-    Center(child: Text('Home')), 
-    ProductList(),
-    ProductDetail(productId: '60J3pS3bRnFjrksPd8hL'),
-    TestProductsScreen(),
-    Center(child: Text('Map')),
-    Center(child: Text('Profile')),
-  ];
+  late String userId;
+  late List<Widget> _screens;
+
+  @override
+  void initState() {
+    super.initState();
+    userId = widget.userId;
+
+    _screens = [
+      const HomePage(),
+      const ProductList(),
+      const ProductDetail(productId: '60J3pS3bRnFjrksPd8hL'),
+      const PostProductScreen(),
+      const NearbyProductsMap(),
+      ProfileView(
+        onDiscoverTapped: () {
+          setState(() {
+            currentIndex = 0;
+          });
+        },
+        userId: userId,
+      ),
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
+    final screens = [
+      Center(child: Text('Home')),
+      ProductList(),
+      ProductDetail(productId: '60J3pS3bRnFjrksPd8hL'),
+      PostProductScreen(),
+      NearbyProductsMap(),
+      ProfileView(onDiscoverTapped: () => setState(() => currentIndex = 1)),
+    ];
+
     return Scaffold(
-      body: screens[currentIndex],
+      body: _screens[currentIndex],
       bottomNavigationBar: CustomNavBar(
         selectedIndex: currentIndex,
         onItemTapped: (index) {
           setState(() {
             currentIndex = index;
           });
+          _firestoreService.logFeatureUsage('screen_$index');
         },
       ),
     );

@@ -6,13 +6,13 @@
 **/.flutter-plugins-dependencies
 **/.metadata
 **/pubspec.lock
+**/Podfile.lock
 
 # Kotlin / Android
 **/.gradle/
 **/local.properties
 **/.idea/
 **/*.iml
-**/build/
 **/captures/
 
 # General
@@ -21,7 +21,21 @@
 **/*.log
 **/node_modules/
 
-# FastAPI
+# FastAPI / Python
+venv/
+.env
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.sqlite3
+*.db
+*.log
+*.pid
+*.json
+
+# FastAPI logs
+fastapi-logs/
 fastapi-logs/venv/
 fastapi-logs/__pycache__/
 fastapi-logs/.env

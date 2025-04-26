@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@android:color/white">
+
+    <ScrollView
+        android:id="@+id/scrollView"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:padding="16dp"
+        android:fillViewport="true"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toTopOf="@+id/btnPost"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <LinearLayout
+            android:orientation="vertical"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <TextView
+                android:id="@+id/tvTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Post a product"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:layout_gravity="center_horizontal"
+                android:paddingBottom="16dp"/>
+
+            <ImageButton
+                android:id="@+id/btnAddPhoto"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_gravity="center_horizontal"
+                android:background="@android:color/transparent"
+                android:src="@android:drawable/ic_menu_camera"
+                android:contentDescription="Add photos" />
+
+            <EditText
+                android:id="@+id/etProductName"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="ej. Probabilidad y estadística para ingeniería"
+                android:layout_marginTop="16dp"
+                android:background="@drawable/edittext_background" />
+
+            <EditText
+                android:id="@+id/etDescription"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:minLines="4"
+                android:hint="Descripción"
+                android:gravity="top|start"
+                android:layout_marginTop="16dp"
+                android:background="@drawable/edittext_background" />
+
+            <EditText
+                android:id="@+id/etCategory"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="ej. Books"
+                android:layout_marginTop="16dp"
+                android:background="@drawable/edittext_background" />
+
+            <EditText
+                android:id="@+id/etPrice"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="ej. 35.000"
+                android:inputType="numberDecimal"
+                android:layout_marginTop="16dp"
+                android:background="@drawable/edittext_background" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Transaction types"
+                android:layout_marginTop="16dp"
+                android:textStyle="bold" />
+
+            <CheckBox
+                android:id="@+id/cbRental"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Rental" />
+
+            <CheckBox
+                android:id="@+id/cbBuy"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Buy" />
+
+            <CheckBox
+                android:id="@+id/cbBid"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Bid" />
+
+            <CheckBox
+                android:id="@+id/cbEarn"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Earn" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Contact information"
+                android:layout_marginTop="16dp"
+                android:textStyle="bold" />
+
+            <EditText
+                android:id="@+id/etEmail"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="pedro@gmail.com"
+                android:inputType="textEmailAddress"
+                android:background="@drawable/edittext_background" />
+        </LinearLayout>
+    </ScrollView>
+
+    <!-- Bottom Button, elevated from nav bar -->
+    <Button
+        android:id="@+id/btnPost"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="Crear producto"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="32dp"
+        android:backgroundTint="#19747E"
+        android:textColor="@android:color/white"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+</androidx.constraintlayout.widget.ConstraintLayout>
