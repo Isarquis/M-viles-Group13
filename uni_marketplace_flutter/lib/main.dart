@@ -121,7 +121,10 @@ class _HomeScreenState extends State<HomeScreen> {
       ProductDetail(productId: '60J3pS3bRnFjrksPd8hL'),
       PostProductScreen(),
       NearbyProductsMap(),
-      ProfileView(onDiscoverTapped: () => setState(() => currentIndex = 1)),
+      ProfileView(
+        onDiscoverTapped: () => setState(() => currentIndex = 1),
+        userId: userId,
+      ),
     ];
 
     return Scaffold(
