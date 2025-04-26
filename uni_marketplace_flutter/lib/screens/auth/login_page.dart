@@ -4,13 +4,46 @@ import '../../viewmodels/auth_viewmodel.dart';
 import 'package:uni_marketplace_flutter/screens/profile_view.dart';
 import 'package:uni_marketplace_flutter/main.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-class LoginPage extends StatelessWidget {
+class LoginPage extends StatefulWidget {
+  const LoginPage({super.key});
+
+  @override
+  State<LoginPage> createState() => _LoginPageState();
+}
+
+class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
   final _email = TextEditingController();
   final _password = TextEditingController();
+  bool _rememberMe = false;
 
-  LoginPage({super.key});
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedEmail();
+  }
+
+  Future<void> _loadSavedEmail() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedEmail = prefs.getString('saved_email');
+    if (savedEmail != null) {
+      setState(() {
+        _email.text = savedEmail;
+        _rememberMe = true;
+      });
+    }
+  }
+
+  Future<void> _saveEmail() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (_rememberMe) {
+      await prefs.setString('saved_email', _email.text);
+    } else {
+      await prefs.remove('saved_email');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -50,63 +83,77 @@ class LoginPage extends StatelessWidget {
                   decoration: _inputDecoration('Password'),
                   validator: (v) => v!.length >= 6 ? null : 'Min 6 characters',
                 ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Checkbox(
+                      value: _rememberMe,
+                      onChanged: (bool? value) {
+                        setState(() {
+                          _rememberMe = value ?? false;
+                        });
+                      },
+                    ),
+                    const Text('Remember me'),
+                  ],
+                ),
                 const SizedBox(height: 30),
                 ElevatedButton(
                   style: _buttonStyle(),
                   onPressed: viewModel.loading
-                        ? null
-                        : () async {
-                            if (_formKey.currentState!.validate()) {
-                              final connectivityResult = await Connectivity().checkConnectivity();
-                              if (connectivityResult == ConnectivityResult.none) {
-                                showDialog(
-                                  context: context,
-                                  builder: (context) => AlertDialog(
-                                    title: const Text('No Connection'),
-                                    content: const Text('You are offline. Please connect to the internet to login.'),
-                                    actions: [
-                                      TextButton(
-                                        onPressed: () => Navigator.pop(context),
-                                        child: const Text('OK'),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                                return;
-                              }
-
-                              viewModel.setLoading(true);
-
-                              try {
-                                final user = await viewModel.login(_email.text, _password.text);
-                                if (user != null) {
-                                  Navigator.pushReplacement(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => HomeScreen(userId: user.uid),
+                      ? null
+                      : () async {
+                          if (_formKey.currentState!.validate()) {
+                            final connectivityResult = await Connectivity().checkConnectivity();
+                            if (connectivityResult == ConnectivityResult.none) {
+                              showDialog(
+                                context: context,
+                                builder: (context) => AlertDialog(
+                                  title: const Text('No Connection'),
+                                  content: const Text('You are offline. Please connect to the internet to login.'),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(context),
+                                      child: const Text('OK'),
                                     ),
-                                  );
-                                }
-                              } catch (error) {
-                                showDialog(
-                                  context: context,
-                                  builder: (context) => AlertDialog(
-                                    title: const Text('Login Failed'),
-                                    content: Text(error.toString()),
-                                    actions: [
-                                      TextButton(
-                                        onPressed: () => Navigator.pop(context),
-                                        child: const Text('OK'),
-                                      ),
-                                    ],
+                                  ],
+                                ),
+                              );
+                              return;
+                            }
+
+                            viewModel.setLoading(true);
+
+                            try {
+                              final user = await viewModel.login(_email.text, _password.text);
+                              if (user != null) {
+                                await _saveEmail();
+                                Navigator.pushReplacement(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => HomeScreen(userId: user.uid),
                                   ),
                                 );
-                              } finally {
-                                viewModel.setLoading(false);
                               }
+                            } catch (error) {
+                              showDialog(
+                                context: context,
+                                builder: (context) => AlertDialog(
+                                  title: const Text('Login Failed'),
+                                  content: Text(error.toString()),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(context),
+                                      child: const Text('OK'),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            } finally {
+                              viewModel.setLoading(false);
                             }
-                          },
-
+                          }
+                        },
                   child: viewModel.loading
                       ? const CircularProgressIndicator()
                       : const Text("LOGIN"),

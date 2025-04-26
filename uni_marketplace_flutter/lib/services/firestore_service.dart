@@ -36,6 +36,33 @@ class FirestoreService {
     }
   }
 
+  Future<void> registerUserWithGender(
+    String userId,
+    Map<String, dynamic> data,
+    String gender,
+  ) async {
+    try {
+      String imageUrl;
+
+      if (gender.toLowerCase() == 'male') {
+        imageUrl = 'https://unimarketimagesbucket.s3.us-west-1.amazonaws.com/bidder2.jpg';
+      } else {
+        imageUrl = 'https://unimarketimagesbucket.s3.us-west-1.amazonaws.com/bidder1.jpg';
+      }
+
+      final userData = {
+        'email': data['email'] ?? '',
+        'name': data['name'] ?? '',
+        'phone': data['phone'] ?? '',
+        'image': imageUrl,
+        'createdAt': FieldValue.serverTimestamp(),
+      };
+
+      await _db.collection('users').doc(userId).set(userData);
+    } catch (e) {
+      rethrow;
+    }
+  }
   // PRODUCTS
 
   Future<void> addProduct(Map<String, dynamic> data) async {
@@ -283,3 +310,4 @@ Future<List<Product>> getProductsMatchingTerms(List<String> terms) async {
 
   return results.toList();
 }
+
