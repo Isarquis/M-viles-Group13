@@ -26,7 +26,7 @@ class FirestoreService {
     try {
       var doc = await _db.collection('users').doc(userId).get();
       if (doc.exists) {
-        final data = doc.data() as Map<String, dynamic>?;
+        final data = doc.data();
         return data;
       } else {
         return null;
@@ -40,20 +40,6 @@ class FirestoreService {
 
   Future<void> addProduct(Map<String, dynamic> data) async {
     try {
-      // Obtener la fecha de creación actual
-      DateTime now = DateTime.now();
-      String formattedDate =
-          "${now.day}-${now.month}-${now.year} ${now.hour}:${now.minute}:${now.second} UTC-5";
-
-      // Asignar el ownerId del usuario actual (esto lo debes obtener de alguna parte de la sesión o del contexto)
-      String ownerId =
-          "202113407"; // Aquí debes poner el ID del propietario, que en tu caso lo recibirías dinámicamente
-
-      // Añadir la fecha de creación y el ID del propietario al producto
-      data['createdAt'] = formattedDate;
-      data['ownerId'] = ownerId;
-
-      // Subir el producto con la fecha de creación y el ownerId
       await _db.collection('products').add(data);
     } catch (e) {
       throw Exception('Error adding product: $e');
@@ -92,11 +78,9 @@ class FirestoreService {
 
   Future<List<Product>> getAllProducts() async {
     var snapshot = await _db.collection('products').get();
-    return snapshot.docs
-        .map((doc) {
-          return Product.fromMap(doc.data(), doc.id);
-        })
-        .toList();
+    return snapshot.docs.map((doc) {
+      return Product.fromMap(doc.data(), doc.id);
+    }).toList();
   }
 
   Future<List<Product>> getProductsByType(String type) async {
@@ -105,11 +89,9 @@ class FirestoreService {
             .collection('products')
             .where('type', arrayContains: type)
             .get();
-    return snapshot.docs
-        .map((doc) {
-          return Product.fromMap(doc.data(), doc.id);
-        })
-        .toList();
+    return snapshot.docs.map((doc) {
+      return Product.fromMap(doc.data(), doc.id);
+    }).toList();
   }
 
   Future<void> updateProductStatus(String productId, String status) async {
@@ -287,6 +269,9 @@ class FirestoreService {
 }
 
 Future<List<Product>> getProductsMatchingTerms(List<String> terms) async {
+  print(
+    'FirestoreService: Buscando productos que coincidan con los términos: $terms',
+  );
   Set<Product> results = {};
 
   for (final term in terms) {
