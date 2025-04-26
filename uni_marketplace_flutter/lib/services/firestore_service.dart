@@ -22,6 +22,34 @@ class FirestoreService {
     await _db.collection('users').doc(userId).set(data);
   }
 
+  Future<void> registerUserWithGender(
+    String userId,
+    Map<String, dynamic> data,
+    String gender,
+  ) async {
+    try {
+      String imageUrl;
+
+      if (gender.toLowerCase() == 'hombre') {
+        imageUrl = 'https://unimarketimagesbucket.s3.us-west-1.amazonaws.com/bidder1.jpg';
+      } else {
+        imageUrl = 'https://unimarketimagesbucket.s3.us-west-1.amazonaws.com/bidder2.jpg';
+      }
+
+      final userData = {
+        'email': data['email'] ?? '',
+        'name': data['name'] ?? '',
+        'phone': data['phone'] ?? '',
+        'profileImage': imageUrl,
+        'createdAt': FieldValue.serverTimestamp(),
+      };
+
+      await _db.collection('users').doc(userId).set(userData);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
   Future<Map<String, dynamic>?> getUser(String userId) async {
     try {
       var doc = await _db.collection('users').doc(userId).get();

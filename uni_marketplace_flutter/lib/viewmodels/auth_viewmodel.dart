@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/auth_service.dart';
+import '../services/firestore_service.dart';
 
 class AuthViewModel extends ChangeNotifier {
   final AuthService _authService = AuthService();
@@ -26,16 +27,29 @@ class AuthViewModel extends ChangeNotifier {
   }
 
   Future<User?> register(String email, String password) async {
-   setLoading(true);
+    setLoading(true);
     try {
       final user = await _authService.register(email, password);
       _setError(null);
+
+      if (user != null) {
+        await FirestoreService().registerUserWithGender(
+          user.uid,
+          {
+            'email': email,
+            'name': '',
+            'phone': '',
+          },
+          'hombre',
+        );
+      }
+
       return user;
     } catch (e) {
       _setError(e.toString());
       return null;
     } finally {
-    setLoading(false);
+      setLoading(false);
     }
   }
 
