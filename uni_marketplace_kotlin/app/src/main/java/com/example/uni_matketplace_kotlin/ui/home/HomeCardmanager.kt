@@ -6,7 +6,7 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.example.uni_matketplace_kotlin.R
-import com.example.uni_matketplace_kotlin.data.model.Product
+import com.example.uni_matketplace_kotlin.data.remote.entities.Product
 
 class HomeCardmanager(private val Products: List<Product>) : RecyclerView.Adapter<HomeCardmanager.ViewHolder>() {
 

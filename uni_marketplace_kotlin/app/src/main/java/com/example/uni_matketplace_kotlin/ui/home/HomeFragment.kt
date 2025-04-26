@@ -1,9 +1,7 @@
 package com.example.uni_matketplace_kotlin.ui.home
 
-import android.content.ContentValues.TAG
 import android.content.Intent
 import android.os.Bundle
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -13,9 +11,9 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.uni_matketplace_kotlin.R
-import com.example.uni_matketplace_kotlin.data.model.Product
 import com.example.uni_matketplace_kotlin.databinding.FragmentHomeBinding
 import com.example.uni_matketplace_kotlin.ui.auth.LoginActivity
+import com.example.uni_matketplace_kotlin.data.remote.entities.Product
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
