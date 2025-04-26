@@ -9,6 +9,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:hive/hive.dart';
 import 'dart:async';
+import 'package:uni_marketplace_flutter/services/lru_cache_service.dart'; 
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -25,55 +26,54 @@ class _HomePageState extends State<HomePage> {
   late final StreamSubscription<ConnectivityResult> _connectivitySubscription;
   List<Product> _allProducts = [];
   List<Product> _filteredProducts = [];
-  List<Product> _recommendedProducts = [];
+  late LRUCache<String, Product> _recommendedProductsCache;
   List<String> _categories = ['All'];
   String _selectedCategory = 'All';
 
   @override
-void initState() {
-  super.initState();
-  _loadProducts();
-
-  _connectivitySubscription = Connectivity()
-    .onConnectivityChanged
-    .listen((ConnectivityResult result) {
-  if (result != ConnectivityResult.none) {
-    setState(() {
-      _isOffline = false;
-    });
+  void initState() {
+    super.initState();
+    _recommendedProductsCache = LRUCache<String, Product>(5);
     _loadProducts();
-  } else {
-    setState(() {
-      _isOffline = true;
-    }); 
+
+    _connectivitySubscription = Connectivity()
+        .onConnectivityChanged
+        .listen((ConnectivityResult result) {
+      if (result != ConnectivityResult.none) {
+        setState(() {
+          _isOffline = false;
+        });
+        _loadProducts();
+      } else {
+        setState(() {
+          _isOffline = true;
+        });
+      }
+    });
   }
-});
 
+  @override
+  void dispose() {
+    _connectivitySubscription.cancel();
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _updateRecommended() async {
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+    if (userId == null) return;
+
+    final topSearches =
+        await _searchService.getTopUserSearchTerms(userId, limit: 3);
+    for (var product in _allProducts) {
+      final title = product.title?.toLowerCase() ?? '';
+      if (topSearches.any((term) => title.contains(term))) {
+        _recommendedProductsCache.put(product.id, product);
+      }
     }
-    @override
-    void dispose() {
-      _connectivitySubscription.cancel();
-      _searchController.dispose();
-      super.dispose();
-    }
 
-    
-
-Future<void> _updateRecommended() async {
-  final userId = FirebaseAuth.instance.currentUser?.uid;
-  if (userId == null) return;
-
-  final topSearches = await _searchService.getTopUserSearchTerms(userId, limit: 3);
-  final recommended = _allProducts.where((product) {
-    final title = product.title?.toLowerCase() ?? '';
-    return topSearches.any((term) => title.contains(term));
-  }).toList();
-
-  setState(() {
-    _recommendedProducts = recommended;
-  });
-}
-
+    setState(() {});
+  }
 
   Future<void> _loadProducts() async {
   final connectivityResult = await Connectivity().checkConnectivity();
@@ -92,64 +92,57 @@ Future<void> _updateRecommended() async {
         if (product.category?.isNotEmpty == true) categories.add(product.category!);
       }
 
-      final userId = FirebaseAuth.instance.currentUser?.uid;
-      if (userId == null) return;
-      final topSearches = await _searchService.getTopUserSearchTerms(userId, limit: 3);
-      final recommended = products.where((product) {
-        final title = product.title?.toLowerCase() ?? '';
-        return topSearches.any((term) => title.contains(term));
-      }).toList();
-
       setState(() {
         _allProducts = products;
         _filteredProducts = products;
         _categories = categories.toList();
-        _recommendedProducts = recommended;
         _isOffline = false;
       });
+
+      await _updateRecommended();
+
     } catch (e) {
       await _loadCachedProducts(forceOffline: false);
     }
   } else {
-
     await _loadCachedProducts(forceOffline: true);
   }
 }
 
 
-Future<void> _loadCachedProducts({bool forceOffline = true}) async {
-  final box = await Hive.openBox('offline_products');
-  final cachedList = box.get('products') as List<dynamic>?;
+  Future<void> _loadCachedProducts({bool forceOffline = true}) async {
+    final box = await Hive.openBox('offline_products');
+    final cachedList = box.get('products') as List<dynamic>?;
 
-  if (cachedList != null && cachedList.isNotEmpty) {
-    final cachedProducts = cachedList
-        .map((e) => Product.fromMap(Map<String, dynamic>.from(e), e['id'] ?? ''))
-        .toList();
+    if (cachedList != null && cachedList.isNotEmpty) {
+      final cachedProducts = cachedList
+          .map((e) => Product.fromMap(
+              Map<String, dynamic>.from(e), e['id'] ?? ''))
+          .toList();
 
-    final categories = <String>{'All'};
-    for (final product in cachedProducts) {
-      if (product.category?.isNotEmpty == true) categories.add(product.category!);
+      final categories = <String>{'All'};
+      for (final product in cachedProducts) {
+        if (product.category?.isNotEmpty == true) {
+          categories.add(product.category!);
+        }
+      }
+
+      setState(() {
+        _allProducts = cachedProducts;
+        _filteredProducts = cachedProducts;
+        _categories = categories.toList();
+        if (forceOffline) _isOffline = true;
+      });
+
+      await _updateRecommended(); 
+      setState(() {
+        _allProducts = [];
+        _filteredProducts = [];
+        _categories = ['All'];
+        if (forceOffline) _isOffline = true;
+      });
     }
-
-    setState(() {
-      _allProducts = cachedProducts;
-      _filteredProducts = cachedProducts;
-      _categories = categories.toList();
-      _recommendedProducts = [];
-      if (forceOffline) _isOffline = true;
-    });
-  } else {
-    setState(() {
-      _allProducts = [];
-      _filteredProducts = [];
-      _categories = ['All'];
-      _recommendedProducts = [];
-      if (forceOffline) _isOffline = true;
-    });
   }
-}
-
-
 
   void _filterProducts(String query) {
     final filtered = _allProducts.where((product) {
@@ -172,7 +165,6 @@ Future<void> _loadCachedProducts({bool forceOffline = true}) async {
     _filterProducts(_searchController.text);
   }
 
-
   @override
   Widget build(BuildContext context) {
     final bool isSearching = _searchController.text.isNotEmpty;
@@ -189,12 +181,11 @@ Future<void> _loadCachedProducts({bool forceOffline = true}) async {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            //  Intro
             const Text(
               'Welcome to UNIMARKET',
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
-             if (_isOffline) ...[
+            if (_isOffline) ...[
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 8.0),
                 child: Row(
@@ -203,13 +194,13 @@ Future<void> _loadCachedProducts({bool forceOffline = true}) async {
                     SizedBox(width: 8),
                     Text(
                       'You are offline. Showing data storage.',
-                      style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                          color: Colors.red, fontWeight: FontWeight.bold),
                     ),
                   ],
                 ),
               ),
             ],
-
             const SizedBox(height: 4),
             const Text(
               'Buy, sell, and discover items from your university community.',
@@ -230,7 +221,7 @@ Future<void> _loadCachedProducts({bool forceOffline = true}) async {
             const SizedBox(height: 16),
 
             // Recommended
-            if (_recommendedProducts.isNotEmpty &&
+            if (_recommendedProductsCache.values.isNotEmpty &&
                 !isSearching &&
                 !isFilteringCategory) ...[
               const Text(
@@ -242,9 +233,9 @@ Future<void> _loadCachedProducts({bool forceOffline = true}) async {
                 height: 250,
                 child: ListView.builder(
                   scrollDirection: Axis.horizontal,
-                  itemCount: _recommendedProducts.length,
+                  itemCount: _recommendedProductsCache.values.length,
                   itemBuilder: (context, index) {
-                    final product = _recommendedProducts[index];
+                    final product = _recommendedProductsCache.values[index];
                     return Padding(
                       padding: const EdgeInsets.only(right: 12.0),
                       child: ProductCard(
@@ -328,7 +319,6 @@ Future<void> _loadCachedProducts({bool forceOffline = true}) async {
                 ),
               ),
             ]
-
           ],
         ),
       ),
