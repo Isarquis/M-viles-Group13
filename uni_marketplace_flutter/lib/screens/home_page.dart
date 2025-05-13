@@ -137,6 +137,7 @@ class _HomePageState extends State<HomePage> {
 }
 
 
+
   void _filterProducts(String query) {
     final filtered = _allProducts.where((product) {
       final titleLower = (product.title ?? '').toLowerCase();
