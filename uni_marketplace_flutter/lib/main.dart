@@ -2,21 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-
+import 'package:uni_marketplace_flutter/screens/earn_list.dart';
 import 'screens/auth/login_page.dart';
 import 'screens/auth/register_page.dart';
 import 'screens/home_page.dart';
 import 'screens/product_list.dart';
 import 'screens/product_detail.dart';
-import 'screens/post_product/post_product_screen.dart';
+import 'screens/post_product_screen.dart';
 import 'screens/nearby_products_map.dart';
 import 'screens/profile_view.dart';
-
 import 'widgets/custom_navbar.dart';
 import 'viewmodels/auth_viewmodel.dart';
 import 'viewmodels/nearby_products_viewmodel.dart';
 import 'services/firestore_service.dart';
-import 'package:flutter/material.dart';
+import 'services/offline_sync_service.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -24,6 +23,13 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
   await Hive.initFlutter();
+
+
+  final firestoreService = FirestoreService();
+  OfflineSyncService(firestoreService);
+
+
+  await Hive.openBox('profile_data');
   
   runApp(
     MultiProvider(
@@ -68,13 +74,10 @@ class MyApp extends StatelessWidget {
           final user = FirebaseAuth.instance.currentUser;
           return HomeScreen(userId: user!.uid);
         },
-
       },
     );
   }
 }
-
-
 
 class HomeScreen extends StatefulWidget {
   final String userId;
@@ -87,7 +90,6 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int currentIndex = 0;
   final FirestoreService _firestoreService = FirestoreService();
-
   late String userId;
   late List<Widget> _screens;
 

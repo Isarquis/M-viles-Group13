@@ -69,12 +69,16 @@ class _LoginPageState extends State<LoginPage> {
                 ),
                 const SizedBox(height: 40),
                 if (viewModel.error != null)
-                  Text(viewModel.error!, style: const TextStyle(color: Colors.red)),
+                  Text(
+                    viewModel.error!,
+                    style: const TextStyle(color: Colors.red),
+                  ),
                 const SizedBox(height: 10),
                 TextFormField(
                   controller: _email,
                   decoration: _inputDecoration('e-mail'),
-                  validator: (v) => v!.contains('@') ? null : 'Enter a valid email',
+                  validator:
+                      (v) => v!.contains('@') ? null : 'Enter a valid email',
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
@@ -174,9 +178,7 @@ class _LoginPageState extends State<LoginPage> {
   InputDecoration _inputDecoration(String label) {
     return InputDecoration(
       labelText: label,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
       focusedBorder: OutlineInputBorder(
         borderSide: const BorderSide(color: Color(0xFF1F7A8C), width: 2),
         borderRadius: BorderRadius.circular(12),
