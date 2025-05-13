@@ -169,11 +169,19 @@ Future<String> uploadImageToS3(File imageFile) async {
   }
 
   Future<void> deleteBidById(String bidId) async {
-    await _db.collection('bids').doc(bidId).delete();
+    try {
+      await _db.collection('bids').doc(bidId).delete();
+    } catch (e) {
+      throw Exception('Error deleting bid: $e');
+    }
   }
 
   Future<void> deleteRentOfferById(String offerId) async {
-    await _db.collection('rents').doc(offerId).delete();
+    try {
+      await _db.collection('rents').doc(offerId).delete();
+    } catch (e) {
+      throw Exception('Error deleting rent offer: $e');
+    }
   }
 
   Future<List<Map<String, dynamic>>> getBidsByProduct(String productId) async {
