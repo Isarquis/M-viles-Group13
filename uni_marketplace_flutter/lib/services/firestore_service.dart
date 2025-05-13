@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import '../models/product_model.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -54,7 +55,7 @@ class FirestoreService {
     try {
       var doc = await _db.collection('users').doc(userId).get();
       if (doc.exists) {
-        final data = doc.data() as Map<String, dynamic>?;
+        final data = doc.data();
         return data;
       } else {
         return null;
@@ -67,7 +68,11 @@ class FirestoreService {
   // PRODUCTS
 
   Future<void> addProduct(Map<String, dynamic> data) async {
-    await FirebaseFirestore.instance.collection('products').add(data);
+    try {
+      await _db.collection('products').add(data);
+    } catch (e) {
+      throw Exception('Error adding product: $e');
+    }
   }
 
   Future<String> uploadImageToS3(File imageFile) async {
@@ -102,11 +107,9 @@ class FirestoreService {
 
   Future<List<Product>> getAllProducts() async {
     var snapshot = await _db.collection('products').get();
-    return snapshot.docs
-        .map((doc) {
-          return Product.fromMap(doc.data(), doc.id);
-        })
-        .toList();
+    return snapshot.docs.map((doc) {
+      return Product.fromMap(doc.data(), doc.id);
+    }).toList();
   }
 
   Future<List<Product>> getProductsByType(String type) async {
@@ -115,11 +118,9 @@ class FirestoreService {
             .collection('products')
             .where('type', arrayContains: type)
             .get();
-    return snapshot.docs
-        .map((doc) {
-          return Product.fromMap(doc.data(), doc.id);
-        })
-        .toList();
+    return snapshot.docs.map((doc) {
+      return Product.fromMap(doc.data(), doc.id);
+    }).toList();
   }
 
   Future<void> updateProductStatus(String productId, String status) async {
@@ -139,11 +140,19 @@ class FirestoreService {
   }
 
   Future<void> deleteBidById(String bidId) async {
-    await _db.collection('bids').doc(bidId).delete();
+    try {
+      await _db.collection('bids').doc(bidId).delete();
+    } catch (e) {
+      throw Exception('Error deleting bid: $e');
+    }
   }
 
   Future<void> deleteRentOfferById(String offerId) async {
-    await _db.collection('rents').doc(offerId).delete();
+    try {
+      await _db.collection('rents').doc(offerId).delete();
+    } catch (e) {
+      throw Exception('Error deleting rent offer: $e');
+    }
   }
 
   Future<List<Map<String, dynamic>>> getBidsByProduct(String productId) async {
@@ -271,7 +280,7 @@ class FirestoreService {
         }
       }
     }
-    
+
     combined.sort(
       (a, b) =>
           (b['bid']['amount'] as int).compareTo(a['bid']['amount'] as int),
@@ -293,16 +302,20 @@ class FirestoreService {
   }
 
   Future<void> logFeatureUsage(String feature) async {
+    final userId = FirebaseAuth.instance.currentUser?.uid;
     await _db.collection('logs').add({
       'type': 'feature_usage',
       'feature': feature,
-
-      'createdAt': FieldValue.serverTimestamp()
+      'userId': userId,
+      'createdAt': FieldValue.serverTimestamp(),
     });
   }
 
-  Future<void> logResponseTime(DateTime requestedAt, DateTime receivedAt, DateTime showedAt) async {
-
+  Future<void> logResponseTime(
+    DateTime requestedAt,
+    DateTime receivedAt,
+    DateTime showedAt,
+  ) async {
     await _db.collection('logs').add({
       'type': 'response_time',
       'requested_at': requestedAt.millisecondsSinceEpoch,
@@ -310,7 +323,6 @@ class FirestoreService {
       'showed_at': showedAt.millisecondsSinceEpoch,
     });
   }
-
 
   Future<void> placeRentOffer(Map<String, dynamic> rentData) async {
     await _db.collection('rents').add(rentData);
@@ -344,21 +356,23 @@ class FirestoreService {
           (b['rent']['price'] as int).compareTo(a['rent']['price'] as int),
     );
 
-
-
     return combined;
   }
 }
 
 Future<List<Product>> getProductsMatchingTerms(List<String> terms) async {
+  print(
+    'FirestoreService: Buscando productos que coincidan con los términos: $terms',
+  );
   Set<Product> results = {};
 
   for (final term in terms) {
-    final query = await FirebaseFirestore.instance
-        .collection('products')
-        .where('title', isGreaterThanOrEqualTo: term)
-        .where('title', isLessThanOrEqualTo: term + '\uf8ff')
-        .get();
+    final query =
+        await FirebaseFirestore.instance
+            .collection('products')
+            .where('title', isGreaterThanOrEqualTo: term)
+            .where('title', isLessThanOrEqualTo: term + '\uf8ff')
+            .get();
 
     results.addAll(query.docs.map((doc) => Product.fromFirestore(doc)));
   }
