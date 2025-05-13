@@ -17,38 +17,29 @@ class FirestoreService {
 
   // USERS
   Future<void> createUser(String userId, Map<String, dynamic> data) async {
-    String imageUrl = await uploadImage('users');
-    data['profileImage'] = imageUrl;
-    await _db.collection('users').doc(userId).set(data);
-  }
+  try {
+    String imageUrl = '';
 
-  Future<void> registerUserWithGender(
-    String userId,
-    Map<String, dynamic> data,
-    String gender,
-  ) async {
-    try {
-      String imageUrl;
-
-      if (gender.toLowerCase() == 'hombre') {
-        imageUrl = 'https://unimarketimagesbucket.s3.us-west-1.amazonaws.com/bidder2.jpg';
-      } else {
-        imageUrl = 'https://unimarketimagesbucket.s3.us-west-1.amazonaws.com/bidder1.jpg';
-      }
-
-      final userData = {
-        'email': data['email'] ?? '',
-        'name': data['name'] ?? '',
-        'phone': data['phone'] ?? '',
-        'image': imageUrl,
-        'createdAt': FieldValue.serverTimestamp(),
-      };
-
-      await _db.collection('users').doc(userId).set(userData);
-    } catch (e) {
-      rethrow;
+    // Si existe imagen, se sube
+    if (data.containsKey('imageFile') && data['imageFile'] is File) {
+      imageUrl = await uploadImageToS3(data['imageFile']);
+    } else {
+      // Asignar imagen predeterminada
+      imageUrl = 'https://unimarketimagesbucket.s3.us-west-1.amazonaws.com/default-user.jpg';
     }
+
+    data['profileImage'] = imageUrl;
+
+    await _db.collection('users').doc(userId).set(data);
+    print('Usuario creado con imagen: $imageUrl');
+    
+  } catch (e) {
+    print('Error en createUser: $e');
+    rethrow;
   }
+}
+
+
 
   Future<Map<String, dynamic>?> getUser(String userId) async {
     try {
@@ -65,32 +56,71 @@ class FirestoreService {
   }
 
   Future<void> registerUserWithGender(
-    String userId,
-    Map<String, dynamic> data,
-    String gender,
-  ) async {
-    try {
-      String imageUrl;
+  String userId,
+  Map<String, dynamic> data,
+  String gender, {
+  File? profileImageFile,  // <-- Nuevo parámetro opcional
+}) async {
+  try {
+    print('Registrando usuario con género: $gender');
 
-      if (gender.toLowerCase() == 'male') {
-        imageUrl = 'https://unimarketimagesbucket.s3.us-west-1.amazonaws.com/bidder2.jpg';
-      } else {
-        imageUrl = 'https://unimarketimagesbucket.s3.us-west-1.amazonaws.com/bidder1.jpg';
-      }
+    String imageUrl = '';
 
-      final userData = {
-        'email': data['email'] ?? '',
-        'name': data['name'] ?? '',
-        'phone': data['phone'] ?? '',
-        'image': imageUrl,
-        'createdAt': FieldValue.serverTimestamp(),
-      };
+    // Si el usuario ha subido una imagen, se sube a S3
+    if (profileImageFile != null) {
+      imageUrl = await uploadImageToS3(profileImageFile);
+      print('Imagen personalizada subida a S3: $imageUrl');
+    } else {
+      // Asignar imagen predeterminada según género
+      imageUrl = gender.toLowerCase() == 'male'
+          ? 'https://unimarketimagesbucket.s3.us-west-1.amazonaws.com/bidder2.jpg'
+          : 'https://unimarketimagesbucket.s3.us-west-1.amazonaws.com/bidder1.jpg';
 
-      await _db.collection('users').doc(userId).set(userData);
-    } catch (e) {
-      rethrow;
+      print('Imagen predeterminada asignada: $imageUrl');
     }
+
+    final userData = {
+      'email': data['email'] ?? '',
+      'name': data['name'] ?? '',
+      'phone': data['phone'] ?? '',
+      'image': imageUrl,
+      'createdAt': FieldValue.serverTimestamp(),
+    };
+
+    await _db.collection('users').doc(userId).set(userData);
+    print('Usuario registrado: $userData');
+    
+  } catch (e) {
+    print('Error en registerUserWithGender: $e');
+    rethrow;
   }
+
+}
+Future<String> uploadImageToS3(File imageFile) async {
+  try {
+    String fileName = '${DateTime.now().millisecondsSinceEpoch}.jpg';
+
+    final uri = Uri.parse('https://unimarketimagesbucket.s3.us-west-1.amazonaws.com/$fileName');
+
+    final request = http.Request('PUT', uri)
+      ..headers['Content-Type'] = 'image/jpeg'
+      ..bodyBytes = imageFile.readAsBytesSync();
+
+    final response = await request.send();
+
+    if (response.statusCode == 200) {
+      print('Imagen subida a S3: $uri');
+      return uri.toString();
+    } else {
+      throw Exception('Error subiendo imagen: ${response.statusCode}');
+    }
+  } catch (e) {
+    print('Error en uploadImageToS3: $e');
+    rethrow;
+  }
+}
+
+
   // PRODUCTS
 
   Future<void> addProduct(Map<String, dynamic> data) async {
@@ -101,35 +131,8 @@ class FirestoreService {
     }
   }
 
-  Future<String> uploadImageToS3(File imageFile) async {
-    try {
-      // Generar un nombre único para el archivo
-      String fileName = '${DateTime.now().millisecondsSinceEpoch}.jpg';
 
-      // URL del bucket S3
-      final uri = Uri.parse(
-        'https://unimarketimagesbucket.s3.amazonaws.com/$fileName',
-      );
-
-      // Realizar la solicitud PUT para subir la imagen
-      final request =
-          http.Request('PUT', uri)
-            ..headers['Content-Type'] = 'image/jpeg'
-            ..bodyBytes =
-                imageFile.readAsBytesSync(); // Asignar la lista de bytes
-
-      final response = await request.send();
-
-      // Verificar el código de estado de la respuesta
-      if (response.statusCode == 200) {
-        return uri.toString(); // Devuelve la URL de la imagen cargada
-      } else {
-        throw Exception('Upload failed');
-      }
-    } catch (e) {
-      rethrow; // Volver a lanzar el error si ocurre un problema
-    }
-  }
+  
 
   Future<List<Product>> getAllProducts() async {
     var snapshot = await _db.collection('products').get();

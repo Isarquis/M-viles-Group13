@@ -100,8 +100,8 @@ class _HomePageState extends State<HomePage> {
       });
 
       await _updateRecommended();
-
     } catch (e) {
+      print('Error fetching products: $e');
       await _loadCachedProducts(forceOffline: false);
     }
   } else {
@@ -110,39 +110,32 @@ class _HomePageState extends State<HomePage> {
 }
 
 
+
   Future<void> _loadCachedProducts({bool forceOffline = true}) async {
-    final box = await Hive.openBox('offline_products');
-    final cachedList = box.get('products') as List<dynamic>?;
+  final box = await Hive.openBox('offline_products');
+  final cachedList = box.get('products') as List<dynamic>?;
 
-    if (cachedList != null && cachedList.isNotEmpty) {
-      final cachedProducts = cachedList
-          .map((e) => Product.fromMap(
-              Map<String, dynamic>.from(e), e['id'] ?? ''))
-          .toList();
+  if (cachedList != null && cachedList.isNotEmpty) {
+    final cachedProducts = cachedList
+        .map((e) => Product.fromMap(Map<String, dynamic>.from(e), e['id'] ?? ''))
+        .toList();
 
-      final categories = <String>{'All'};
-      for (final product in cachedProducts) {
-        if (product.category?.isNotEmpty == true) {
-          categories.add(product.category!);
-        }
-      }
-
-      setState(() {
-        _allProducts = cachedProducts;
-        _filteredProducts = cachedProducts;
-        _categories = categories.toList();
-        if (forceOffline) _isOffline = true;
-      });
-
-      await _updateRecommended(); 
-      setState(() {
-        _allProducts = [];
-        _filteredProducts = [];
-        _categories = ['All'];
-        if (forceOffline) _isOffline = true;
-      });
+    final categories = <String>{'All'};
+    for (final product in cachedProducts) {
+      if (product.category?.isNotEmpty == true) categories.add(product.category!);
     }
+
+    setState(() {
+      _allProducts = cachedProducts;
+      _filteredProducts = cachedProducts;
+      _categories = categories.toList();
+      _isOffline = forceOffline;
+    });
+
+    await _updateRecommended();
   }
+}
+
 
   void _filterProducts(String query) {
     final filtered = _allProducts.where((product) {
@@ -165,7 +158,7 @@ class _HomePageState extends State<HomePage> {
     _filterProducts(_searchController.text);
   }
 
-  @override
+    @override
   Widget build(BuildContext context) {
     final bool isSearching = _searchController.text.isNotEmpty;
     final bool isFilteringCategory = _selectedCategory != 'All';
@@ -176,15 +169,16 @@ class _HomePageState extends State<HomePage> {
         categories: _categories,
         selectedCategory: _selectedCategory,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+      body: RefreshIndicator(
+        onRefresh: _loadProducts,
+        child: ListView(
+          padding: const EdgeInsets.all(16.0),
           children: [
             const Text(
               'Welcome to UNIMARKET',
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
+            const SizedBox(height: 16),
             if (_isOffline) ...[
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 8.0),
@@ -193,7 +187,7 @@ class _HomePageState extends State<HomePage> {
                     Icon(Icons.wifi_off, color: Colors.red),
                     SizedBox(width: 8),
                     Text(
-                      'You are offline. Showing data storage.',
+                      'You are offline. Showing cached data.',
                       style: TextStyle(
                           color: Colors.red, fontWeight: FontWeight.bold),
                     ),
@@ -201,14 +195,7 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
             ],
-            const SizedBox(height: 4),
-            const Text(
-              'Buy, sell, and discover items from your university community.',
-              style: TextStyle(fontSize: 14, color: Colors.black54),
-            ),
             const SizedBox(height: 16),
-
-            // Search Bar
             custom.SearchBar(
               controller: _searchController,
               products: _allProducts,
@@ -220,7 +207,7 @@ class _HomePageState extends State<HomePage> {
             ),
             const SizedBox(height: 16),
 
-            // Recommended
+            // Recommended Products
             if (_recommendedProductsCache.values.isNotEmpty &&
                 !isSearching &&
                 !isFilteringCategory) ...[
@@ -251,7 +238,7 @@ class _HomePageState extends State<HomePage> {
               const SizedBox(height: 16),
             ],
 
-            // Recently Added
+            // Recently Added Products
             if (_allProducts.isNotEmpty &&
                 !isSearching &&
                 !isFilteringCategory) ...[
@@ -282,7 +269,7 @@ class _HomePageState extends State<HomePage> {
               const SizedBox(height: 16),
             ],
 
-            // Search or Filtered Results
+            // Search/Filtered Results
             if (_filteredProducts.isNotEmpty &&
                 (isSearching || isFilteringCategory)) ...[
               const Text(
@@ -313,15 +300,16 @@ class _HomePageState extends State<HomePage> {
               const SizedBox(height: 32),
               Center(
                 child: Text(
-                  'No store products found.\nReconnect to view listings.',
+                  'No products found. Pull down to refresh.',
                   style: TextStyle(color: Colors.grey, fontSize: 16),
                   textAlign: TextAlign.center,
                 ),
               ),
-            ]
+            ],
           ],
         ),
       ),
     );
   }
+
 }

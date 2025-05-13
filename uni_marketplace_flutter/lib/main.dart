@@ -101,16 +101,26 @@ class _HomeScreenState extends State<HomeScreen> {
     _screens = [
       const HomePage(),
       const ProductList(),
-      const ProductDetail(productId: '60J3pS3bRnFjrksPd8hL'),
-      const PostProductScreen(),
+      const EarnScreen(),
+      PostProductScreen(
+        onProductPosted: () {
+          setState(() {
+            currentIndex = 1; // Cambia a ProductList
+          });
+        },
+      ),
       const NearbyProductsMap(),
       ProfileView(
-      onDiscoverTapped: () => setState(() => currentIndex = 1),
-      userId: userId,
-    ),
-
+        onDiscoverTapped: () {
+          setState(() {
+            currentIndex = 0; // Cambia a HomePage
+          });
+        },
+        userId: userId,
+      ),
     ];
   }
+
 
   @override
   Widget build(BuildContext context) {
