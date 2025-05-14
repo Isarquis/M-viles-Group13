@@ -1,4 +1,5 @@
-package com.example.uni_marketplace_kotlin.ui.search.adapter
+package com.example.uni_matketplace_kotlin.ui.search.Adapter
+
 
 import android.view.LayoutInflater
 import android.view.ViewGroup
