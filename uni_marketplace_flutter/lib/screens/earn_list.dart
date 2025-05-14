@@ -3,6 +3,9 @@ import 'package:uni_marketplace_flutter/models/product_model.dart';
 import 'package:uni_marketplace_flutter/screens/sell_product_detail.dart';
 import 'package:uni_marketplace_flutter/services/firestore_service.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:sqflite/sqflite.dart';
+import 'package:path/path.dart';
+import 'package:path_provider/path_provider.dart';
 
 class EarnScreen extends StatefulWidget {
   const EarnScreen({super.key});
@@ -18,12 +21,46 @@ class _EarnScreenState extends State<EarnScreen> {
   String _selectedCategory = 'All';
   final List<String> _categories = ['All', 'Math', 'Science', 'Tech'];
 
+  // SQLite Database for Sparse Array Cache
+  late Database _cacheDb;
+
   @override
   void initState() {
     super.initState();
     _loadProducts();
+    _initializeSQLite();
   }
 
+  Future<void> _initializeSQLite() async {
+    final directory = await getApplicationDocumentsDirectory();
+    final path = join(directory.path, 'product_cache.db');
+    _cacheDb = await openDatabase(
+      path,
+      version: 1,
+      onCreate: (db, version) {
+        db.execute('''
+        CREATE TABLE sparse_cache (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          product_id TEXT NOT NULL,
+          title TEXT NOT NULL,
+          price REAL NOT NULL,
+          last_accessed DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+      ''');
+      },
+    );
+  }
+
+  // Insert product into the Sparse Array Cache
+  void _saveToCache(Product product) async {
+    await _cacheDb.insert('sparse_cache', {
+      'product_id': product.id,
+      'title': product.title,
+      'price': product.price,
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  // Load all products from Firestore
   void _loadProducts() async {
     var fetched = await _firestoreService.getAllProducts();
     setState(() {
@@ -34,20 +71,25 @@ class _EarnScreenState extends State<EarnScreen> {
     });
   }
 
-  @override
-  Widget build(BuildContext context) {
+  // Filter products based on search query
+  void _filterProducts(String query) {
     final filtered =
         _allProducts.where((p) {
           final matchCategory =
               _selectedCategory == 'All' || p.category == _selectedCategory;
           final matchSearch =
-              _searchController.text.isEmpty ||
-              (p.title ?? '').toLowerCase().contains(
-                _searchController.text.toLowerCase(),
-              );
+              query.isEmpty ||
+              (p.title ?? '').toLowerCase().contains(query.toLowerCase());
           return matchCategory && matchSearch;
         }).toList();
 
+    setState(() {
+      _allProducts = filtered;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -99,7 +141,11 @@ class _EarnScreenState extends State<EarnScreen> {
                   Expanded(
                     child: TextField(
                       controller: _searchController,
-                      onChanged: (_) => setState(() {}),
+                      onChanged: (value) {
+                        setState(() {
+                          _filterProducts(value);
+                        });
+                      },
                       decoration: const InputDecoration(
                         hintText: 'What are you looking for?',
                         hintStyle: TextStyle(
@@ -112,7 +158,16 @@ class _EarnScreenState extends State<EarnScreen> {
                   ),
                   const SizedBox(width: 8),
                   ElevatedButton(
-                    onPressed: () => setState(() {}),
+                    onPressed: () {
+                      _saveToCache(
+                        Product(
+                          id: 'search_${DateTime.now().millisecondsSinceEpoch}', // Dummy id for search terms
+                          title: _searchController.text,
+                          price: 0, // Placeholder for search
+                        ),
+                      );
+                      setState(() {});
+                    },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF1F7A8C),
                       shape: RoundedRectangleBorder(
@@ -137,7 +192,7 @@ class _EarnScreenState extends State<EarnScreen> {
             const SizedBox(height: 16),
             Expanded(
               child:
-                  filtered.isEmpty
+                  _allProducts.isEmpty
                       ? const Center(
                         child: Text(
                           "No products found.\nTry changing the category or search term.",
@@ -147,9 +202,9 @@ class _EarnScreenState extends State<EarnScreen> {
                       )
                       : ListView.builder(
                         padding: const EdgeInsets.symmetric(vertical: 12),
-                        itemCount: filtered.length,
+                        itemCount: _allProducts.length,
                         itemBuilder: (context, index) {
-                          final product = filtered[index];
+                          final product = _allProducts[index];
                           return Padding(
                             padding: const EdgeInsets.symmetric(vertical: 8),
                             child: Container(

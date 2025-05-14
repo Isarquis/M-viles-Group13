@@ -133,4 +133,28 @@ class PostProductViewModel {
     await _firestoreService.addProduct(data);
     print('PostProductViewModel: Producto subido a Firestore con éxito');
   }
+
+  Future<void> logPostStep({
+    required String step,
+    required String userId,
+    required String attemptId,
+  }) async {
+    await _firestoreService.logPostStep(
+      step: step,
+      userId: userId,
+      attemptId: attemptId,
+    );
+  }
+
+  Future<void> logProductPosting({
+    required String category,
+    required List<String> transactionTypes,
+    required String userId,
+  }) async {
+    await _firestoreService.logProductPosting(
+      category: category,
+      transactionTypes: transactionTypes,
+      userId: userId,
+    );
+  }
 }

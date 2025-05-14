@@ -11,7 +11,7 @@ class AuthService {
 
   Future<User?> login(String email, String password) async {
     try {
-      print('Logging in with email: $email');  // DEBUG LOG
+      print('Logging in with email: $email'); // DEBUG LOG
       final result = await _auth.signInWithEmailAndPassword(
         email: email.trim(),
         password: password.trim(),
@@ -25,57 +25,58 @@ class AuthService {
   }
 
   Future<User?> register(
-  String email,
-  String name,
-  String phone,
-  String gender,
-  String password, {
-  File? profileImageFile,
-}) async {
-  try {
-    print('Registering user with email: $email');  // DEBUG LOG
+    String email,
+    String name,
+    String phone,
+    String gender,
+    String password, {
+    File? profileImageFile,
+  }) async {
+    try {
+      print('Registering user with email: $email'); // DEBUG LOG
 
-    final result = await _auth.createUserWithEmailAndPassword(
-      email: email.trim(),
-      password: password.trim(),
-    );
-
-    if (result.user != null) {
-      // Datos a enviar a Firestore
-      final userData = {
-        'email': email.trim(),
-        'name': name.trim(),
-        'phone': phone.trim(),
-        'createdAt': FieldValue.serverTimestamp(),
-      };
-
-      // Llamar a registerUserWithGender en FirestoreService
-      await _firestoreService.registerUserWithGender(
-        result.user!.uid,
-        userData,
-        gender,
-        profileImageFile: profileImageFile,
+      final result = await _auth.createUserWithEmailAndPassword(
+        email: email.trim(),
+        password: password.trim(),
       );
+
+      if (result.user != null) {
+        // Datos a enviar a Firestore
+        final userData = {
+          'email': email.trim(),
+          'name': name.trim(),
+          'phone': phone.trim(),
+          'createdAt': FieldValue.serverTimestamp(),
+        };
+
+        // Llamar a registerUserWithGender en FirestoreService
+        await _firestoreService.registerUserWithGender(
+          result.user!.uid,
+          userData,
+          gender,
+          profileImageFile: profileImageFile,
+        );
+      }
+
+      return result.user;
+    } on FirebaseAuthException catch (e) {
+      throw _handleAuthError(e);
+    } catch (e) {
+      throw 'Unexpected error during registration: $e';
     }
-
-    return result.user;
-  } on FirebaseAuthException catch (e) {
-    throw _handleAuthError(e);
-  } catch (e) {
-    throw 'Unexpected error during registration: $e';
   }
-}
-
 
   Future<void> logout() async {
     print('Logging out...');
     await _auth.signOut();
   }
 
+  User? get currentUser => _auth.currentUser;
+
   Stream<User?> get authStateChanges => _auth.authStateChanges();
 
   String _handleAuthError(FirebaseAuthException e) {
-    print('Auth Error: ${e.code}');  // DEBUG LOG
+    print('Auth Error: ${e.code}'); // DEBUG LOG
     switch (e.code) {
       case 'network-request-failed':
         return 'No internet connection.';
