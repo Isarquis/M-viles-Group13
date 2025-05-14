@@ -1,3 +1,8 @@
+import 'dart:io';
+import 'dart:async';
+
+import 'package:connectivity_plus/connectivity_plus.dart';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/product_model.dart';
@@ -28,92 +33,146 @@ class _ProductDetailContent extends StatefulWidget {
 class _ProductDetailContentState extends State<_ProductDetailContent> {
   bool showAllBids = false;
   bool showAllRentOffers = false;
+  late StreamSubscription<ConnectivityResult> _connectivitySubscription;
+  bool hasConnection = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkInitialConnection();
+    _connectivitySubscription = Connectivity()
+        .onConnectivityChanged
+        .listen((ConnectivityResult result) {
+      setState(() {
+        hasConnection = result != ConnectivityResult.none;
+      });
+    });
+  }
+
+  Future<void> _checkInitialConnection() async {
+    final result = await Connectivity().checkConnectivity();
+    setState(() {
+      hasConnection = result != ConnectivityResult.none;
+    });
+  }
+
+  @override
+  void dispose() {
+    _connectivitySubscription.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final viewModel = Provider.of<ProductDetailViewModel>(context);
+    final vmHasConnection = viewModel.hasConnection;
 
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: Text(widget.product.title ?? 'Product'),
       ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: SizedBox(
-                  height: 150,
-                  child: Image.network(
-                    widget.product.image ?? '',
-                    fit: BoxFit.contain,
+      body: SafeArea(
+        child: Column(
+          children: [
+            if (!hasConnection || !vmHasConnection)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(8),
+                color: Colors.red,
+                child: const Text(
+                  'You are offline. Data may be outdated.',
+                  style: TextStyle(color: Colors.white),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            Expanded(
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Center(
+                        child: SizedBox(
+                          height: 150,
+                          child: widget.product.image != null && widget.product.image!.startsWith('/')
+                              ? Image.file(
+                                  File(widget.product.image!),
+                                  fit: BoxFit.contain,
+                                )
+                              : Image.network(
+                                  widget.product.image ?? '',
+                                  fit: BoxFit.contain,
+                                ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'Biddings',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 8),
+                      if (viewModel.isLoading)
+                        const Center(child: CircularProgressIndicator())
+                      else if (viewModel.bidsWithUsers.isEmpty)
+                        const Text("No bids yet.")
+                      else
+                        ListView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: showAllBids
+                              ? viewModel.bidsWithUsers.length
+                              : (viewModel.bidsWithUsers.length > 2
+                                  ? 2
+                                  : viewModel.bidsWithUsers.length),
+                          itemBuilder: (context, index) {
+                            final bid = viewModel.bidsWithUsers[index]['bid'];
+                            final user = viewModel.bidsWithUsers[index]['user'];
+                            return _BidCard(bid: bid, user: user, viewModel: viewModel);
+                          },
+                        ),
+                      if (viewModel.bidsWithUsers.length > 2)
+                        TextButton(
+                          onPressed: () => setState(() => showAllBids = !showAllBids),
+                          child: Text(showAllBids ? 'Show less' : 'Show all'),
+                        ),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'Rent offers',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 8),
+                      if (viewModel.isLoading)
+                        const Center(child: CircularProgressIndicator())
+                      else if (viewModel.rentOffersWithUsers.isEmpty)
+                        const Text("No rent offers yet.")
+                      else
+                        ListView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: showAllRentOffers
+                              ? viewModel.rentOffersWithUsers.length
+                              : (viewModel.rentOffersWithUsers.length > 2
+                                  ? 2
+                                  : viewModel.rentOffersWithUsers.length),
+                          itemBuilder: (context, index) {
+                            final offer = viewModel.rentOffersWithUsers[index]['offer'];
+                            final user = viewModel.rentOffersWithUsers[index]['user'];
+                            return _RentCard(offer: offer, user: user);
+                          },
+                        ),
+                      if (viewModel.rentOffersWithUsers.length > 2)
+                        TextButton(
+                          onPressed: () => setState(() => showAllRentOffers = !showAllRentOffers),
+                          child: Text(showAllRentOffers ? 'Show less' : 'Show all'),
+                        ),
+                    ],
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
-              const Text(
-                'Biddings',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              if (viewModel.isLoading)
-                const Center(child: CircularProgressIndicator())
-              else if (viewModel.bidsWithUsers.isEmpty)
-                const Text("No bids yet.")
-              else
-                ListView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: showAllBids
-                      ? viewModel.bidsWithUsers.length
-                      : (viewModel.bidsWithUsers.length > 2
-                          ? 2
-                          : viewModel.bidsWithUsers.length),
-                  itemBuilder: (context, index) {
-                    final bid = viewModel.bidsWithUsers[index]['bid'];
-                    final user = viewModel.bidsWithUsers[index]['user'];
-                    return _BidCard(bid: bid, user: user, viewModel: viewModel);
-                  },
-                ),
-              if (viewModel.bidsWithUsers.length > 2)
-                TextButton(
-                  onPressed: () => setState(() => showAllBids = !showAllBids),
-                  child: Text(showAllBids ? 'Show less' : 'Show all'),
-                ),
-              const SizedBox(height: 16),
-              const Text(
-                'Rent offers',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              if (viewModel.isLoading)
-                const Center(child: CircularProgressIndicator())
-              else if (viewModel.rentOffersWithUsers.isEmpty)
-                const Text("No rent offers yet.")
-              else
-                ListView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: showAllRentOffers
-                      ? viewModel.rentOffersWithUsers.length
-                      : (viewModel.rentOffersWithUsers.length > 2
-                          ? 2
-                          : viewModel.rentOffersWithUsers.length),
-                  itemBuilder: (context, index) {
-                    final offer = viewModel.rentOffersWithUsers[index]['offer'];
-                    final user = viewModel.rentOffersWithUsers[index]['user'];
-                    return _RentCard(offer: offer, user: user);
-                  },
-                ),
-              if (viewModel.rentOffersWithUsers.length > 2)
-                TextButton(
-                  onPressed: () => setState(() => showAllRentOffers = !showAllRentOffers),
-                  child: Text(showAllRentOffers ? 'Show less' : 'Show all'),
-                ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

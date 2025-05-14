@@ -45,7 +45,7 @@ class PostProductViewModel {
   }
 
   bool isEmailValid(String email) {
-    final re = RegExp(r'^[\w\.\-]+@[a-zA-Z0-9\-]+\.[a-zA-Z]{2,}$');
+    final re = RegExp(r'^[\w\.\-]+@[a-zA-Z0-9\-]+\.[a-zA-Z\.]{2,}$');
     return re.hasMatch(email);
   }
 
@@ -67,14 +67,29 @@ class PostProductViewModel {
       'PostProductViewModel: postProduct called with title: $title and attemptId: $attemptId',
     );
 
-    if (title.isEmpty ||
-        description.isEmpty ||
-        selectedCategory.isEmpty ||
-        price <= 0 ||
-        transactionTypes.isEmpty ||
-        !isEmailValid(email)) {
-      print('PostProductViewModel: Datos inválidos del producto');
-      throw Exception('Invalid product data');
+    if (title.isEmpty) {
+      print('PostProductViewModel: Título vacío');
+      throw Exception('Invalid product data: title is empty');
+    }
+    if (description.isEmpty) {
+      print('PostProductViewModel: Descripción vacía');
+      throw Exception('Invalid product data: description is empty');
+    }
+    if (selectedCategory.isEmpty) {
+      print('PostProductViewModel: Categoría vacía');
+      throw Exception('Invalid product data: category is empty');
+    }
+    if (price <= 0) {
+      print('PostProductViewModel: Precio inválido: \$price');
+      throw Exception('Invalid product data: price must be > 0');
+    }
+    if (transactionTypes.isEmpty) {
+      print('PostProductViewModel: Tipos de transacción vacíos');
+      throw Exception('Invalid product data: transactionTypes is empty');
+    }
+    if (!isEmailValid(email)) {
+      print('PostProductViewModel: Email inválido: \$email');
+      throw Exception('Invalid product data: email is invalid');
     }
 
     bool isOnline = await checkConnectivity();
