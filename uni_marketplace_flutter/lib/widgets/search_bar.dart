@@ -24,7 +24,7 @@ class SearchBar extends StatefulWidget {
 class _SearchBarState extends State<SearchBar> {
   final FirestoreService _firestoreService = FirestoreService();
   final SearchService _searchService = SearchService();
-  final SearchDatabaseService _searchDbService = SearchDatabaseService(); 
+  final SearchDatabaseService _searchDbService = SearchDatabaseService();
 
   Future<void> _performSearch(String input) async {
     final lowerInput = input.toLowerCase();
@@ -33,17 +33,17 @@ class _SearchBarState extends State<SearchBar> {
       widget.onSearchResult(widget.products);
       return;
     }
-    
-    await _searchService.incrementSearchTerm(lowerInput);
-    await _searchDbService.insertSearchTerm(lowerInput); 
-    await SearchFileService.appendSearchTerm(lowerInput);
 
+    await _searchService.incrementSearchTerm(lowerInput);
+    await _searchDbService.insertSearchTerm(lowerInput);
+    await SearchFileService.appendSearchTerm(lowerInput);
     _firestoreService.logFeatureUsage('search$lowerInput');
 
-    final filtered = widget.products.where((p) {
-      final title = p.title ?? '';
-      return title.toLowerCase().contains(lowerInput);
-    }).toList();
+    final filtered =
+        widget.products.where((p) {
+          final title = p.title ?? '';
+          return title.toLowerCase().contains(lowerInput);
+        }).toList();
 
     widget.onSearchResult(filtered);
   }
@@ -84,7 +84,10 @@ class _SearchBarState extends State<SearchBar> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 12,
+                  ),
                 ),
                 child: const Text(
                   'Search',
