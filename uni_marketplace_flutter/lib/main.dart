@@ -24,13 +24,11 @@ void main() async {
   await Firebase.initializeApp();
   await Hive.initFlutter();
 
-
   final firestoreService = FirestoreService();
   OfflineSyncService(firestoreService);
 
-
   await Hive.openBox('profile_data');
-  
+
   runApp(
     MultiProvider(
       providers: [
@@ -73,6 +71,15 @@ class MyApp extends StatelessWidget {
         '/home': (context) {
           final user = FirebaseAuth.instance.currentUser;
           return HomeScreen(userId: user!.uid);
+        },
+        '/profile': (context) {
+          final user = FirebaseAuth.instance.currentUser;
+          return ProfileView(
+            userId: user!.uid,
+            onDiscoverTapped: () {
+              Navigator.pushReplacementNamed(context, '/home');
+            },
+          );
         },
       },
     );

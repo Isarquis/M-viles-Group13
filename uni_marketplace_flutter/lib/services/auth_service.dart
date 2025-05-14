@@ -35,6 +35,8 @@ class AuthService {
     await _auth.signOut();
   }
 
+  User? get currentUser => _auth.currentUser;
+
   Stream<User?> get authStateChanges => _auth.authStateChanges();
 
   // Handle FirebaseAuth specific error messages

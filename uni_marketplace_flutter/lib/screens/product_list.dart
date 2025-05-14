@@ -3,6 +3,7 @@ import 'package:uni_marketplace_flutter/screens/product_detail.dart';
 import 'package:uni_marketplace_flutter/services/firestore_service.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:uni_marketplace_flutter/models/product_model.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SearchBar extends StatefulWidget {
   final TextEditingController controller;
@@ -132,6 +133,9 @@ class _ProductListState extends State<ProductList> {
   void initState() {
     super.initState();
     _firestoreService.logFeatureUsage('screen_product_list');
+    SharedPreferences.getInstance().then((prefs) {
+      prefs.setString('lastProductListOpen', DateTime.now().toIso8601String());
+    });
     _loadProducts();
   }
 
