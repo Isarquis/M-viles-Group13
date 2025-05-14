@@ -5,6 +5,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:uni_marketplace_flutter/models/product_model.dart';
 import 'package:connectivity_plus/connectivity_plus.dart'; 
 
+
 class SearchBar extends StatefulWidget {
   final TextEditingController controller;
   final List<Product> products;
@@ -123,6 +124,7 @@ class _ProductListState extends State<ProductList> {
     super.initState();
     _firestoreService.logFeatureUsage('screen_product_list');
     _checkConnectionAndLoad();
+
   }
 
   Future<void> _checkConnectionAndLoad() async {

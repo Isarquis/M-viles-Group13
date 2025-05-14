@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
@@ -23,18 +24,23 @@ class _ProfileViewState extends State<ProfileView> {
   late ProfileViewModel profile;
   bool _isLoading = true;
   bool hasConnection = true;
+  late StreamSubscription<ConnectivityResult> _connectivitySubscription;
 
   @override
   void initState() {
     super.initState();
     loadUserData();
-    Connectivity().onConnectivityChanged.listen((ConnectivityResult result) {
+    _connectivitySubscription = Connectivity().onConnectivityChanged.listen((ConnectivityResult result) {
       bool previousConnection = hasConnection;
-      setState(() {
-        hasConnection = result != ConnectivityResult.none;
-      });
-      if (!previousConnection && hasConnection) {
-        loadUserData();
+      if (!mounted) return;
+      final newConnectionStatus = result != ConnectivityResult.none;
+      if (mounted) {
+        setState(() {
+          hasConnection = newConnectionStatus;
+        });
+        if (!previousConnection && newConnectionStatus) {
+          loadUserData();
+        }
       }
     });
   }
@@ -51,6 +57,16 @@ class _ProfileViewState extends State<ProfileView> {
     print('Loading user data for userId: ${widget.userId}');
     profile = ProfileViewModel(widget.userId);
     await profile.loadUserData(offlineMode: !hasConnection);
+
+    print('Loaded profile data:');
+    print('Name: ${profile.name}');
+    print('Email: ${profile.email}');
+    print('Phone: ${profile.phone}');
+    print('ImagePath: ${profile.imagePath}');
+    print('Posted products: ${profile.postedProducts.map((p) => p.image).toList()}');
+    print('Rented products: ${profile.rentedProducts.map((p) => p.image).toList()}');
+    print('Bought products: ${profile.boughtProducts.map((p) => p.image).toList()}');
+    print('Last sold: ${profile.lastSold?.image}');
 
     if (!mounted) return;
     setState(() {
@@ -241,5 +257,11 @@ class _ProfileViewState extends State<ProfileView> {
         ),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _connectivitySubscription.cancel();
+    super.dispose();
   }
 }

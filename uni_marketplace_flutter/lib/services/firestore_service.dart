@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import '../models/product_model.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -37,6 +38,19 @@ class FirestoreService {
       print('Error en createUser: $e');
       rethrow;
     }
+  }
+
+  Future<void> logPurchase(String productId, int price, String category) async {
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+    await _db.collection('buy-logs').add({
+      'type': 'purchase',
+      'productId': productId,
+      'price': price,
+      'category': category,
+      'userId': userId,
+      'createdAt': FieldValue.serverTimestamp(),
+      'timestamp': DateTime.now().millisecondsSinceEpoch,
+    });
   }
 
   Future<Map<String, dynamic>?> getUser(String userId) async {
@@ -216,13 +230,31 @@ class FirestoreService {
     required String productId,
     required int price,
   }) async {
-    await _db.collection('transactions').add({
+    final docRef = FirebaseFirestore.instance
+        .collection('products')
+        .doc(productId);
+    final productSnapshot = await docRef.get();
+
+    if (!productSnapshot.exists) {
+      throw Exception('Producto no encontrado');
+    }
+
+    final productData = productSnapshot.data();
+    if (productData?['status'] == 'Sold') {
+      throw Exception('Este producto ya fue vendido');
+    }
+
+    // Marcar producto como vendido
+    await docRef.update({'status': 'Sold'});
+
+    // Crear transacción
+    await FirebaseFirestore.instance.collection('transactions').add({
       'buyerId': buyerId,
       'sellerId': sellerId,
       'productId': productId,
       'price': price,
       'type': 'Sale',
-      'createdAt': FieldValue.serverTimestamp(),
+      'timestamp': FieldValue.serverTimestamp(),
     });
   }
 
@@ -241,6 +273,21 @@ class FirestoreService {
         .toList();
   }
 
+  Future<List<Map<String, dynamic>>> getSaleTransactionsBySeller(
+    String sellerId,
+  ) async {
+    var snapshot =
+        await _db
+            .collection('transactions')
+            .where('sellerId', isEqualTo: sellerId)
+            .where('type', isEqualTo: 'Sale')
+            .get();
+
+    return snapshot.docs
+        .map((doc) => doc.data() as Map<String, dynamic>)
+        .toList();
+  }
+
   Future<List<Map<String, dynamic>>> getEnrichedSaleTransactionsByUser(
     String userId,
   ) async {
@@ -250,6 +297,11 @@ class FirestoreService {
             .where('buyerId', isEqualTo: userId)
             .where('type', isEqualTo: 'Sale')
             .get();
+
+    print('Snapshot de transacciones encontradas: ${snapshot.docs.length}');
+    for (var doc in snapshot.docs) {
+      print('Transacción encontrada: ${doc.data()}');
+    }
 
     List<Map<String, dynamic>> enrichedTransactions = [];
 
@@ -333,12 +385,15 @@ class FirestoreService {
     return await ref.getDownloadURL();
   }
 
-  Future<void> logFeatureUsage(String feature) async {
+  Future<void> logFeatureUsage(String feature, {DateTime? startedAt}) async {
+    final userId = FirebaseAuth.instance.currentUser?.uid;
     await _db.collection('logs').add({
       'type': 'feature_usage',
       'feature': feature,
-
+      'userId': userId,
+      if (startedAt != null) 'startedAt': startedAt.toIso8601String(),
       'createdAt': FieldValue.serverTimestamp(),
+      'timestamp': DateTime.now().millisecondsSinceEpoch,
     });
   }
 
@@ -388,6 +443,7 @@ class FirestoreService {
       'requested_at': requestedAt.millisecondsSinceEpoch,
       'received_at': receivedAt.millisecondsSinceEpoch,
       'showed_at': showedAt.millisecondsSinceEpoch,
+      'timestamp': DateTime.now().millisecondsSinceEpoch,
     });
   }
 
