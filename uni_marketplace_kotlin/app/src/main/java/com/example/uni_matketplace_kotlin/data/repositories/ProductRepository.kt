@@ -179,5 +179,15 @@ class ProductRepository @Inject constructor(
                 Log.d("ProductRepository", "Productos filtrados obtenidos desde la base local: ${it.size}")
             }
         }
+
     }
+    suspend fun incrementClickCounter(productId: String, attribute: String) {
+        val docRef = db.collection("products").document(productId)
+        db.runTransaction { transaction ->
+            val snapshot = transaction.get(docRef)
+            val currentCount = snapshot.getLong("clicks.$attribute") ?: 0
+            transaction.update(docRef, "clicks.$attribute", currentCount + 1)
+        }.await()
+    }
+
 }
