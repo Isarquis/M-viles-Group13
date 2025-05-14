@@ -53,7 +53,7 @@ class _EarnScreenState extends State<EarnScreen> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        leading: const BackButton(color: Colors.black),
+        leading: null,
         title: const Align(
           alignment: Alignment.centerLeft,
           child: Text(

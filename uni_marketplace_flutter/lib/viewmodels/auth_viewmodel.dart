@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/auth_service.dart';
@@ -5,7 +6,8 @@ import '../services/firestore_service.dart';
 
 class AuthViewModel extends ChangeNotifier {
   final AuthService _authService = AuthService();
-
+  final FirestoreService _firestoreService = FirestoreService();
+  
   bool _loading = false;
   bool get loading => _loading;
 
@@ -26,27 +28,34 @@ class AuthViewModel extends ChangeNotifier {
     }
   }
 
-  Future<User?> register(String email, String password) async {
+  Future<User?> register(
+    String email,
+    String password,
+    String name,
+    String phone,
+    String gender, {
+    File? profileImageFile,
+  }) async {
     setLoading(true);
     try {
-      final user = await _authService.register(email, password);
+      final user = await _authService.register(
+        email,
+        password,
+        name,
+        phone,
+        gender,
+        profileImageFile: profileImageFile,
+      );
+
+
       _setError(null);
-
-      if (user != null) {
-        await FirestoreService().registerUserWithGender(
-          user.uid,
-          {
-            'email': email,
-            'name': '',
-            'phone': '',
-          },
-          'hombre',
-        );
-      }
-
       return user;
     } catch (e) {
-      _setError(e.toString());
+      if (e.toString().contains('email-already-in-use')) {
+        _setError('The email is already registered. Please use another email.');
+      } else {
+        _setError(e.toString());
+      }
       return null;
     } finally {
       setLoading(false);

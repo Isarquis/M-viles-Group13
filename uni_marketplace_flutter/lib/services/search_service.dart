@@ -1,8 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'search_file_service.dart';
 
 class SearchService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
+  final SearchFileService _searchFileService = SearchFileService();
 
   Future<void> incrementSearchTerm(String term) async {
     final userId = FirebaseAuth.instance.currentUser?.uid;

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:uni_marketplace_flutter/models/product_model.dart';
 import 'package:uni_marketplace_flutter/services/firestore_service.dart';
 import 'package:uni_marketplace_flutter/services/search_service.dart';
+import 'package:uni_marketplace_flutter/services/search_database_service.dart';
+import 'package:uni_marketplace_flutter/services/search_file_service.dart';
 
 class SearchBar extends StatefulWidget {
   final TextEditingController controller;
@@ -22,16 +24,20 @@ class SearchBar extends StatefulWidget {
 class _SearchBarState extends State<SearchBar> {
   final FirestoreService _firestoreService = FirestoreService();
   final SearchService _searchService = SearchService();
+  final SearchDatabaseService _searchDbService = SearchDatabaseService(); 
 
-  void _performSearch(String input) {
+  Future<void> _performSearch(String input) async {
     final lowerInput = input.toLowerCase();
 
     if (lowerInput.isEmpty) {
       widget.onSearchResult(widget.products);
       return;
     }
+    
+    await _searchService.incrementSearchTerm(lowerInput);
+    await _searchDbService.insertSearchTerm(lowerInput); 
+    await SearchFileService.appendSearchTerm(lowerInput);
 
-    _searchService.incrementSearchTerm(lowerInput);
     _firestoreService.logFeatureUsage('search$lowerInput');
 
     final filtered = widget.products.where((p) {
@@ -57,7 +63,7 @@ class _SearchBarState extends State<SearchBar> {
               Expanded(
                 child: TextField(
                   controller: widget.controller,
-                  onChanged: _performSearch,
+                  onChanged: (value) => _performSearch(value),
                   decoration: const InputDecoration(
                     hintText: 'What are you looking for?',
                     hintStyle: TextStyle(
@@ -78,10 +84,7 @@ class _SearchBarState extends State<SearchBar> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 12,
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                 ),
                 child: const Text(
                   'Search',

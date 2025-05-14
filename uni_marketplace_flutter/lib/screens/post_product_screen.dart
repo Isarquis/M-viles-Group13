@@ -173,7 +173,7 @@ class _PostProductScreenState extends State<PostProductScreen> {
         appBar: AppBar(
           backgroundColor: Colors.white,
           elevation: 0,
-          leading: const BackButton(color: Colors.black),
+          leading: null,
           title: const Align(
             alignment: Alignment.centerLeft,
             child: Text(
