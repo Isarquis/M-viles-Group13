@@ -41,23 +41,6 @@ class FirestoreService {
 }
 
 
-  Future<void> registerUserWithGender(
-    String userId,
-    Map<String, dynamic> data,
-    String gender,
-  ) async {
-    try {
-      String imageUrl;
-
-      if (gender.toLowerCase() == 'hombre') {
-        imageUrl =
-            'https://unimarketimagesbucket.s3.us-west-1.amazonaws.com/bidder2.jpg';
-      } else {
-        imageUrl =
-            'https://unimarketimagesbucket.s3.us-west-1.amazonaws.com/bidder1.jpg';
-      }
-
-
 
   Future<void> logPurchase(String productId, int price, String category) async {
     final userId = FirebaseAuth.instance.currentUser?.uid;
