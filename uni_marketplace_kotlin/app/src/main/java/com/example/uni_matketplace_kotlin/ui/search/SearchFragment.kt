@@ -14,9 +14,8 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.uni_marketplace_kotlin.ui.search.adapter.ProductAdapter
-import com.example.uni_matketplace_kotlin.data.repositories.ProductRepository
 import com.example.uni_matketplace_kotlin.databinding.FragmentSearchBinding
-import com.example.uni_matketplace_kotlin.ui.viewmodel.SearchViewModel
+import com.example.uni_matketplace_kotlin.viewmodel.SearchViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 @AndroidEntryPoint
@@ -60,10 +59,14 @@ class SearchFragment : Fragment() {
     }
 
     private fun setupRecyclerView() {
-        adapter = ProductAdapter()
+        adapter = ProductAdapter { productId, attribute ->
+            viewModel.incrementClickCounter(attribute)
+        }
+
         binding.rvProducts.layoutManager = LinearLayoutManager(requireContext())
         binding.rvProducts.adapter = adapter
     }
+
 
     private fun setupListeners() {
         binding.btnBuy.setOnClickListener {

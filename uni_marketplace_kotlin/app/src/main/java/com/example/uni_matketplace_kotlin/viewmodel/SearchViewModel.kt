@@ -1,9 +1,13 @@
-package com.example.uni_matketplace_kotlin.ui.viewmodel
-
+package com.example.uni_matketplace_kotlin.viewmodel
 import android.app.Application
-import androidx.lifecycle.*
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.viewModelScope
 import com.example.uni_matketplace_kotlin.data.remote.entities.Product
 import com.example.uni_matketplace_kotlin.data.repositories.ProductRepository
+import com.google.firebase.firestore.FieldValue
+import com.google.firebase.firestore.FirebaseFirestore
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -13,6 +17,8 @@ class SearchViewModel @Inject constructor(
     application: Application,
     private val productRepository: ProductRepository
 ) : AndroidViewModel(application) {
+
+    private val firestore = FirebaseFirestore.getInstance()
 
     private val _products = MutableLiveData<List<Product>>()
     val products: LiveData<List<Product>> = _products
@@ -49,6 +55,17 @@ class SearchViewModel @Inject constructor(
         }
     }
 
+    fun incrementClickCounter(attribute: String) {
+        val validAttributes = listOf("description", "image", "price", "title")
+        if (attribute in validAttributes) {
+            firestore.collection("Click-logs")
+                .document("MainLog")
+                .update(attribute, FieldValue.increment(1))
+                .addOnFailureListener { e ->
+                    _error.postValue("Error al registrar click: ${e.message}")
+                }
+        }
+    }
 
     fun clearError() {
         _error.value = null
