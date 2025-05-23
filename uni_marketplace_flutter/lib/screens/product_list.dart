@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:uni_marketplace_flutter/screens/product_detail.dart';
 import 'package:uni_marketplace_flutter/services/firestore_service.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:uni_marketplace_flutter/models/product_model.dart';
 import 'package:connectivity_plus/connectivity_plus.dart'; 
+
 
 class SearchBar extends StatefulWidget {
   final TextEditingController controller;
@@ -23,17 +26,39 @@ class SearchBar extends StatefulWidget {
 
 class _SearchBarState extends State<SearchBar> {
   final FirestoreService _firestoreService = FirestoreService();
+  Timer? _debounce;
+  List<Product> _suggestions = [];
+
+  void _onSearchChanged(String query) {
+    if (_debounce?.isActive ?? false) _debounce?.cancel();
+
+    _debounce = Timer(const Duration(milliseconds: 300), () {
+      final results = widget.products.where(
+        (p) => (p.title ?? '').toLowerCase().contains(query.toLowerCase()),
+      ).toList();
+
+      setState(() {
+        _suggestions = results;
+      });
+    });
+  }
+
+  @override
+
+  void initState() {
+    super.initState();
+    _suggestions = [];
+  }
+
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    List<Product> suggestions = widget.controller.text.isEmpty
-        ? []
-        : widget.products.where(
-            (p) => (p.title ?? '').toLowerCase().contains(
-                  widget.controller.text.toLowerCase(),
-                ),
-          ).toList();
-
     return Column(
       children: [
         Container(
@@ -47,7 +72,7 @@ class _SearchBarState extends State<SearchBar> {
               Expanded(
                 child: TextField(
                   controller: widget.controller,
-                  onChanged: (value) => setState(() {}),
+                  onChanged: _onSearchChanged,
                   decoration: const InputDecoration(
                     hintText: 'What are you looking for?',
                     hintStyle: TextStyle(
@@ -63,9 +88,11 @@ class _SearchBarState extends State<SearchBar> {
                 onPressed: () {
                   if (widget.controller.text.isEmpty) {
                     widget.onSearchResult([]);
-                  } else if (suggestions.isNotEmpty) {
+
+                  } else if (_suggestions.isNotEmpty) {
                     _firestoreService.logFeatureUsage('search${widget.controller.text}');
-                    widget.onSearchResult([suggestions.first]);
+                    widget.onSearchResult([_suggestions.first]);
+
                   }
                 },
                 style: ElevatedButton.styleFrom(
@@ -84,7 +111,7 @@ class _SearchBarState extends State<SearchBar> {
           ),
         ),
         const SizedBox(height: 8),
-        ...suggestions.map(
+        ..._suggestions.map(
           (s) => ListTile(
             title: Text(s.title ?? ''),
             onTap: () {
@@ -97,7 +124,6 @@ class _SearchBarState extends State<SearchBar> {
     );
   }
 }
-
 class ProductList extends StatefulWidget {
   const ProductList({super.key});
 
@@ -123,6 +149,7 @@ class _ProductListState extends State<ProductList> {
     super.initState();
     _firestoreService.logFeatureUsage('screen_product_list');
     _checkConnectionAndLoad();
+
   }
 
   Future<void> _checkConnectionAndLoad() async {
@@ -403,3 +430,4 @@ class _ProductListState extends State<ProductList> {
     );
   }
 }
+

@@ -1,6 +1,9 @@
+// Question: How easy was it for you to find the product you were looking for? Did it take more than 5 seconds?
+// Purpose: Measure efficiency of search/filtering mechanisms in ProductList screen for UX improvement.
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:uni_marketplace_flutter/services/firestore_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:uni_marketplace_flutter/models/product_model.dart';
 import 'package:uni_marketplace_flutter/widgets/product_action_buttons.dart';
@@ -9,6 +12,7 @@ import '../widgets/show_bidders.dart';
 import '../widgets/place_rent_offer.dart';
 import '../viewmodels/product_detail_viewmodel.dart';
 import '../widgets/show_rent_offerers.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 Map<String, dynamic> fallbackProduct = {
   'name': 'Cargando...',
@@ -49,7 +53,7 @@ class _ProductDetailState extends State<ProductDetail> {
   void initState() {
     super.initState();
 
-    FirestoreService().logFeatureUsage('screen_product_detail');
+    _logFeatureWithStoredStartTime();
 
   }
 
@@ -61,10 +65,8 @@ class _ProductDetailState extends State<ProductDetail> {
     return (highest * 1.05).ceil();
   }
 
-  void handleAction(String type) {
-
+  void handleAction(String type, ProductDetailViewModel viewModel) {
     FirestoreService().logFeatureUsage('button_$type');
-
     if (type == 'Bidding') {
       setState(() {
         showPlaceBid = true;
@@ -77,6 +79,46 @@ class _ProductDetailState extends State<ProductDetail> {
         showPlaceBid = false;
         showBidders = false;
       });
+    } else if (type == 'Buy') {
+      final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+      if (currentUserId != null && viewModel.product != null) {
+        final ownerId = viewModel.product!['ownerId'];
+        final priceRaw = viewModel.product!['price'];
+        final price = (priceRaw is int)
+            ? priceRaw
+            : (priceRaw is double)
+                ? priceRaw.toInt()
+                : double.tryParse(priceRaw.toString())?.toInt() ?? 0;
+        final category = viewModel.product?['category'] ?? 'unknown';
+        print('price  = $price');
+        if (ownerId == null || price == null) {
+          print('❗ Missing product data: ownerId=$ownerId, price=$price');
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('❗ Error: Missing product data')),
+          );
+          return;
+        }
+
+        print('🛒 Starting purchase process...');
+        FirestoreService().createSaleTransaction(
+          buyerId: currentUserId,
+          sellerId: ownerId,
+          productId: widget.productId,
+          price: price,
+        ).then((_) {
+          print('✅ Sale transaction created. Updating product status...');
+          FirestoreService().logPurchase(widget.productId, price, category);
+          return FirestoreService().updateProductStatus(widget.productId, 'Sold');
+        }).then((_) {
+          print('🎉 Sale transaction created successfully. Redirecting to profile...');
+          Navigator.pushReplacementNamed(context, '/profile');
+        }).catchError((e) {
+          print('❌ Error during purchase process: $e');
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('❌ Error completing the purchase')),
+          );
+        });
+      }
     }
   }
 
@@ -167,7 +209,7 @@ class _ProductDetailState extends State<ProductDetail> {
                     ProductActionButtons(
                       types: typesList,
                       selectedType: typesList.isNotEmpty ? typesList.first : '',
-                      onPressed: handleAction,
+                      onPressed: (type) => handleAction(type, viewModel),
                     ),
                     if (showPlaceRentOffer) ...[
                       PlaceRentOfferSection(
@@ -299,3 +341,13 @@ class _ProductDetailState extends State<ProductDetail> {
     );
   }
 }
+
+  void _logFeatureWithStoredStartTime() async {
+    final prefs = await SharedPreferences.getInstance();
+    final timeStr = prefs.getString('lastProductListOpen');
+    DateTime? startedAt;
+    if (timeStr != null) {
+      startedAt = DateTime.tryParse(timeStr);
+    }
+    FirestoreService().logFeatureUsage('screen_product_detail', startedAt: startedAt);
+  }

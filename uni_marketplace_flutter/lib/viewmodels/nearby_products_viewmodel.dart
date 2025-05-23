@@ -7,6 +7,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:flutter/services.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 
 class NearbyProductsViewModel extends ChangeNotifier {
   final LocationService _locationService = LocationService();
@@ -58,10 +59,8 @@ class NearbyProductsViewModel extends ChangeNotifier {
   }
 
   Future<BitmapDescriptor> _getProductMarkerIcon(String imageUrl) async {
-    final ByteData data = await NetworkAssetBundle(
-      Uri.parse(imageUrl),
-    ).load("");
-    final Uint8List bytes = data.buffer.asUint8List();
+    final file = await DefaultCacheManager().getSingleFile(imageUrl);
+    final Uint8List bytes = await file.readAsBytes();
     final ui.Codec codec = await ui.instantiateImageCodec(
       bytes,
       targetWidth: 150,

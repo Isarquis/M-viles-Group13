@@ -7,7 +7,7 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
+  const LoginPage({Key? key}) : super(key: key);
 
   @override
   State<LoginPage> createState() => _LoginPageState();
@@ -15,8 +15,8 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
-  final _email = TextEditingController();
-  final _password = TextEditingController();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
   bool _rememberMe = false;
 
   @override
@@ -30,7 +30,7 @@ class _LoginPageState extends State<LoginPage> {
     final savedEmail = prefs.getString('saved_email');
     if (savedEmail != null) {
       setState(() {
-        _email.text = savedEmail;
+        _emailController.text = savedEmail;
         _rememberMe = true;
       });
     }
@@ -39,7 +39,7 @@ class _LoginPageState extends State<LoginPage> {
   Future<void> _saveEmail() async {
     final prefs = await SharedPreferences.getInstance();
     if (_rememberMe) {
-      await prefs.setString('saved_email', _email.text);
+      await prefs.setString('saved_email', _emailController.text.trim());
     } else {
       await prefs.remove('saved_email');
     }
@@ -69,26 +69,32 @@ class _LoginPageState extends State<LoginPage> {
                 ),
                 const SizedBox(height: 40),
                 if (viewModel.error != null)
-                  Text(viewModel.error!, style: const TextStyle(color: Colors.red)),
+                  Text(
+                    viewModel.error!,
+                    style: const TextStyle(color: Colors.red),
+                  ),
                 const SizedBox(height: 10),
                 TextFormField(
-                  controller: _email,
-                  decoration: _inputDecoration('e-mail'),
-                  validator: (v) => v!.contains('@') ? null : 'Enter a valid email',
+                  controller: _emailController,
+                  decoration: _inputDecoration('E-mail'),
+                  validator: (value) => value != null && value.contains('@')
+                      ? null
+                      : 'Enter a valid email',
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
-                  controller: _password,
+                  controller: _passwordController,
                   obscureText: true,
                   decoration: _inputDecoration('Password'),
-                  validator: (v) => v!.length >= 6 ? null : 'Min 6 characters',
+                  validator: (value) =>
+                      value != null && value.length >= 6 ? null : 'Min 6 characters',
                 ),
                 const SizedBox(height: 16),
                 Row(
                   children: [
                     Checkbox(
                       value: _rememberMe,
-                      onChanged: (bool? value) {
+                      onChanged: (value) {
                         setState(() {
                           _rememberMe = value ?? false;
                         });
@@ -106,26 +112,18 @@ class _LoginPageState extends State<LoginPage> {
                           if (_formKey.currentState!.validate()) {
                             final connectivityResult = await Connectivity().checkConnectivity();
                             if (connectivityResult == ConnectivityResult.none) {
-                              showDialog(
-                                context: context,
-                                builder: (context) => AlertDialog(
-                                  title: const Text('No Connection'),
-                                  content: const Text('You are offline. Please connect to the internet to login.'),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: () => Navigator.pop(context),
-                                      child: const Text('OK'),
-                                    ),
-                                  ],
-                                ),
-                              );
+                              _showAlert('No Connection', 'Please connect to the internet to login.');
                               return;
                             }
 
                             viewModel.setLoading(true);
 
                             try {
-                              final user = await viewModel.login(_email.text, _password.text);
+                              final user = await viewModel.login(
+                                _emailController.text.trim(),
+                                _passwordController.text.trim(),
+                              );
+
                               if (user != null) {
                                 await _saveEmail();
                                 Navigator.pushReplacement(
@@ -136,19 +134,7 @@ class _LoginPageState extends State<LoginPage> {
                                 );
                               }
                             } catch (error) {
-                              showDialog(
-                                context: context,
-                                builder: (context) => AlertDialog(
-                                  title: const Text('Login Failed'),
-                                  content: Text(error.toString()),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: () => Navigator.pop(context),
-                                      child: const Text('OK'),
-                                    ),
-                                  ],
-                                ),
-                              );
+                              _showAlert('Login Failed', error.toString());
                             } finally {
                               viewModel.setLoading(false);
                             }
@@ -174,13 +160,7 @@ class _LoginPageState extends State<LoginPage> {
   InputDecoration _inputDecoration(String label) {
     return InputDecoration(
       labelText: label,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderSide: const BorderSide(color: Color(0xFF1F7A8C), width: 2),
-        borderRadius: BorderRadius.circular(12),
-      ),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
     );
   }
 
@@ -188,8 +168,23 @@ class _LoginPageState extends State<LoginPage> {
     return ElevatedButton.styleFrom(
       backgroundColor: const Color(0xFF1F7A8C),
       padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 14),
-      textStyle: const TextStyle(fontWeight: FontWeight.bold),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    );
+  }
+
+  void _showAlert(String title, String message) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text(title),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
     );
   }
 }

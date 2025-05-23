@@ -14,6 +14,7 @@ class Product {
   final double? longitude;
   final List<String>? type;
   final DateTime? createdAt;
+  final String? originalImageUrl;
 
   Product({
     required this.id,
@@ -29,6 +30,7 @@ class Product {
     this.longitude,
     this.type,
     this.createdAt,
+    this.originalImageUrl,
   });
 
   factory Product.fromMap(Map<String, dynamic> data, String documentId) {
@@ -46,6 +48,8 @@ class Product {
     longitude: (data['longitude'] != null) ? (data['longitude'] as num).toDouble() : null,
     type: (data['type'] != null) ? List<String>.from(data['type']) : null,
     createdAt: _parseDateTime(data['createdAt']),
+    originalImageUrl: data['originalImageUrl'],
+
   );
 }
 
@@ -57,7 +61,6 @@ static DateTime? _parseDateTime(dynamic value) {
   if (value is DateTime) return value;
   return null;
 }
-
 
 
   Map<String, dynamic> toMap() {
@@ -74,10 +77,48 @@ static DateTime? _parseDateTime(dynamic value) {
       'longitude': longitude,
       'type': type,
       'createdAt': createdAt,
+      'originalImageUrl': originalImageUrl,
     };
   }
     factory Product.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
     return Product.fromMap(data, doc.id);
+  }
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'title': title,
+      'description': description,
+      'image': image,
+      'category': category,
+      'ownerId': ownerId,
+      'status': status,
+      'price': price,
+      'baseBid': baseBid,
+      'latitude': latitude,
+      'longitude': longitude,
+      'type': type,
+      'createdAt': createdAt?.millisecondsSinceEpoch,
+      'originalImageUrl': originalImageUrl,
+    };
+  }
+
+  factory Product.fromJson(Map<String, dynamic> json) {
+    return Product(
+      id: json['id'],
+      title: json['title'],
+      description: json['description'],
+      image: json['image'],
+      category: json['category'],
+      ownerId: json['ownerId'],
+      status: json['status'],
+      price: (json['price'] != null) ? (json['price'] as num).toDouble() : null,
+      baseBid: (json['baseBid'] != null) ? (json['baseBid'] as num).toDouble() : null,
+      latitude: (json['latitude'] != null) ? (json['latitude'] as num).toDouble() : null,
+      longitude: (json['longitude'] != null) ? (json['longitude'] as num).toDouble() : null,
+      type: (json['type'] != null) ? List<String>.from(json['type']) : null,
+      createdAt: json['createdAt'] != null ? DateTime.fromMillisecondsSinceEpoch(json['createdAt']) : null,
+      originalImageUrl: json['originalImageUrl'],
+    );
   }
 }
