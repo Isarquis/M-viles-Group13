@@ -17,7 +17,7 @@ class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  bool _rememberMe = false;
+  final ValueNotifier<bool> _rememberMe = ValueNotifier(false);
 
   @override
   void initState() {
@@ -31,14 +31,14 @@ class _LoginPageState extends State<LoginPage> {
     if (savedEmail != null) {
       setState(() {
         _emailController.text = savedEmail;
-        _rememberMe = true;
+        _rememberMe.value = true;
       });
     }
   }
 
   Future<void> _saveEmail() async {
     final prefs = await SharedPreferences.getInstance();
-    if (_rememberMe) {
+    if (_rememberMe.value) {
       await prefs.setString('saved_email', _emailController.text.trim());
     } else {
       await prefs.remove('saved_email');
@@ -90,18 +90,17 @@ class _LoginPageState extends State<LoginPage> {
                       value != null && value.length >= 6 ? null : 'Min 6 characters',
                 ),
                 const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Checkbox(
-                      value: _rememberMe,
-                      onChanged: (value) {
-                        setState(() {
-                          _rememberMe = value ?? false;
-                        });
-                      },
-                    ),
-                    const Text('Remember me'),
-                  ],
+                ValueListenableBuilder<bool>(
+                  valueListenable: _rememberMe,
+                  builder: (context, value, child) => Row(
+                    children: [
+                      Checkbox(
+                        value: value,
+                        onChanged: (checked) => _rememberMe.value = checked ?? false,
+                      ),
+                      const Text('Remember me'),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 30),
                 ElevatedButton(
