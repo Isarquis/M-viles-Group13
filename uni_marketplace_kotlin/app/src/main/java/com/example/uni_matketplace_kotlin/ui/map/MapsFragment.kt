@@ -88,7 +88,7 @@ class MapsFragment : Fragment(), OnMapReadyCallback, GoogleMap.OnMyLocationButto
         }
     }
 
-    // Anaalytics Pipeline
+    // Analytics Pipeline
     override fun onResume() {
         super.onResume()
         sessionViewModel.logEvent("enter", "map")
@@ -99,7 +99,7 @@ class MapsFragment : Fragment(), OnMapReadyCallback, GoogleMap.OnMyLocationButto
         sessionViewModel.logEvent("exit", "map")
     }
 
-    //Addition
+    //Additionals to focus camera
     private fun moverCamaraALaUbicacion(callback: (LatLng) -> Unit) {
         if (!isPermissionsGranted()) return
 
@@ -125,7 +125,6 @@ class MapsFragment : Fragment(), OnMapReadyCallback, GoogleMap.OnMyLocationButto
 
 
     //Permissions
-
     private fun isPermissionsGranted(): Boolean {
         return ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
     }
@@ -159,7 +158,6 @@ class MapsFragment : Fragment(), OnMapReadyCallback, GoogleMap.OnMyLocationButto
         _binding = null
     }
 
-    //Obsevers
 
     private fun observerClosestUser(){
         mapsViewModel.closestUser.observe(viewLifecycleOwner) { user ->
@@ -205,7 +203,6 @@ class MapsFragment : Fragment(), OnMapReadyCallback, GoogleMap.OnMyLocationButto
             nearbyMarkers.forEach { it.remove() }
             nearbyMarkers.clear()
 
-            // Agregar nuevos marcadores
             users.forEach { user ->
                 val userLatLng = LatLng(user.location.latitude, user.location.longitude)
                 val marker = mMap.addMarker(
