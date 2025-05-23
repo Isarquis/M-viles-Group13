@@ -7,5 +7,11 @@ plugins {
     id("com.google.devtools.ksp") version "1.9.24-1.0.20" apply false
     id("com.google.dagger.hilt.android") version "2.48" apply false
     id("io.realm.kotlin") version "1.13.0" apply false
+}
 
+buildscript {
+    dependencies {
+        classpath (libs.androidx.navigation.safe.args.gradle.plugin)
+        // Resto de tus classpath...
+    }
 }

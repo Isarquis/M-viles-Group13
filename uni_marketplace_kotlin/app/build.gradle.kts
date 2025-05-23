@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
+    id("androidx.navigation.safeargs.kotlin")
     id("com.google.gms.google-services")
     id("com.google.devtools.ksp")
     id("kotlin-kapt")
@@ -55,6 +56,7 @@ dependencies {
     implementation(libs.firebase.firestore.ktx)
 
     // AndroidX y Material
+    implementation (libs.androidx.swiperefreshlayout)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
@@ -63,6 +65,8 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
     implementation(libs.androidx.navigation.fragment.ktx)
     implementation(libs.androidx.navigation.ui.ktx)
+    implementation (libs.androidx.lifecycle.viewmodel.ktx.v262)
+    implementation (libs.androidx.lifecycle.livedata.ktx.v262)
     implementation("androidx.cardview:cardview:1.0.0")
 
     // Google Maps y Location
