@@ -15,24 +15,6 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:padding="16dp">
-
-        <ImageView
-            android:id="@+id/backButton"
-            android:layout_width="24dp"
-            android:layout_height="24dp"
-            android:layout_alignParentStart="true"
-            android:contentDescription="Back Button"
-            android:src="@drawable/baseline_arrow_back_24" />
-
-        <TextView
-            android:id="@+id/titleText"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_centerHorizontal="true"
-            android:text="Products close to you"
-            android:textSize="18sp"
-            android:textStyle="bold"
-            android:textColor="@color/black"/>
     </RelativeLayout>
 
     <!-- Contenedor principal para el mapa -->
@@ -90,7 +72,7 @@
                     android:id="@+id/productName"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Product: Bicicleta"
+                    android:text="Product: "
                     android:textSize="14sp"
                     android:textColor="@color/black"/>
 

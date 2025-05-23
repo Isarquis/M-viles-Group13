@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'firestore_service.dart';
 
+
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -56,13 +57,17 @@ class AuthService {
         gender,
         profileImageFile: profileImageFile,
       );
+
+
     }
 
     return result.user;
   } on FirebaseAuthException catch (e) {
     throw _handleAuthError(e);
   } catch (e) {
+
     throw 'Unexpected error during registration: $e';
+
   }
 }
 

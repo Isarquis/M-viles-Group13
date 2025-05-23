@@ -53,6 +53,7 @@ class _ProfileViewState extends State<ProfileView> {
   }
 
   void loadUserData() async {
+
     await checkConnectivity();
     print('Loading user data for userId: ${widget.userId}');
     profile = ProfileViewModel(widget.userId);
@@ -73,6 +74,8 @@ class _ProfileViewState extends State<ProfileView> {
       _isLoading = false;
     });
   }
+
+
 
   @override
   Widget build(BuildContext context) {

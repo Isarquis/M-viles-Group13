@@ -44,10 +44,12 @@ class _SearchBarState extends State<SearchBar> {
   }
 
   @override
+
   void initState() {
     super.initState();
     _suggestions = [];
   }
+
 
   @override
   void dispose() {
@@ -86,9 +88,11 @@ class _SearchBarState extends State<SearchBar> {
                 onPressed: () {
                   if (widget.controller.text.isEmpty) {
                     widget.onSearchResult([]);
+
                   } else if (_suggestions.isNotEmpty) {
                     _firestoreService.logFeatureUsage('search${widget.controller.text}');
                     widget.onSearchResult([_suggestions.first]);
+
                   }
                 },
                 style: ElevatedButton.styleFrom(
