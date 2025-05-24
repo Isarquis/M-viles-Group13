@@ -57,9 +57,19 @@ class _PostProductScreenState extends State<PostProductScreen> {
     );
   }
 
-  Future<void> _initHive() async {
-    productBox = await Hive.openBox('pending_products');
-    imageBox = await Hive.openBox('product_images');
+  Future<void> _initHive() {
+    return Hive.openBox('pending_products')
+        .then((box) {
+          productBox = box;
+          return Hive.openBox('product_images');
+        })
+        .then((box) {
+          imageBox = box;
+          print('Hive boxes initialized with .then() chaining');
+        })
+        .catchError((e) {
+          print('Error initializing Hive boxes: $e');
+        });
   }
 
   Future<void> _getLocation() async {

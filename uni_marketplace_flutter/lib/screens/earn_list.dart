@@ -1,349 +1,287 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:uni_marketplace_flutter/models/product_model.dart';
 import 'package:uni_marketplace_flutter/screens/sell_product_detail.dart';
 import 'package:uni_marketplace_flutter/services/firestore_service.dart';
-import 'package:cached_network_image/cached_network_image.dart';
-import 'package:sqflite/sqflite.dart';
-import 'package:path/path.dart';
-import 'package:path_provider/path_provider.dart';
+
+enum SortOption { priceAsc, priceDesc, dateAsc, dateDesc }
 
 class EarnScreen extends StatefulWidget {
-  const EarnScreen({super.key});
+  const EarnScreen({Key? key}) : super(key: key);
 
   @override
   State<EarnScreen> createState() => _EarnScreenState();
 }
 
 class _EarnScreenState extends State<EarnScreen> {
-  final TextEditingController _searchController = TextEditingController();
+  // servicios y controladores
   final FirestoreService _firestoreService = FirestoreService();
-  List<Product> _allProducts = [];
-  String _selectedCategory = 'All';
-  final List<String> _categories = ['All', 'Math', 'Science', 'Tech'];
+  final TextEditingController _searchController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
 
-  // SQLite Database for Sparse Array Cache
-  late Database _cacheDb;
+  // datos y estados
+  List<Product> _allProducts = [];
+  List<Product> _filtered = [];
+  List<Product> _page = [];
+  bool _isLoading = false;
+  bool _isLoadingMore = false;
+  bool _hasMore = true;
+  int _lastIndex = 0;
+  final int _perPage = 20;
+
+  String _selectedCategory = 'All';
+  SortOption? _selectedSort;
+  final List<String> _categories = ['All', 'Math', 'Science', 'Tech'];
 
   @override
   void initState() {
     super.initState();
-    _loadProducts();
-    _initializeSQLite();
+    _scrollController.addListener(_onScroll);
+    _loadInitial();
   }
 
-  Future<void> _initializeSQLite() async {
-    final directory = await getApplicationDocumentsDirectory();
-    final path = join(directory.path, 'product_cache.db');
-    _cacheDb = await openDatabase(
-      path,
-      version: 1,
-      onCreate: (db, version) {
-        db.execute('''
-        CREATE TABLE sparse_cache (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          product_id TEXT NOT NULL,
-          title TEXT NOT NULL,
-          price REAL NOT NULL,
-          last_accessed DATETIME DEFAULT CURRENT_TIMESTAMP
-        )
-      ''');
-      },
-    );
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+            _scrollController.position.maxScrollExtent - 200 &&
+        !_isLoadingMore &&
+        _hasMore) {
+      _loadMore();
+    }
   }
 
-  // Insert product into the Sparse Array Cache
-  void _saveToCache(Product product) async {
-    await _cacheDb.insert('sparse_cache', {
-      'product_id': product.id,
-      'title': product.title,
-      'price': product.price,
-    }, conflictAlgorithm: ConflictAlgorithm.replace);
-  }
-
-  // Load all products from Firestore
-  void _loadProducts() async {
-    var fetched = await _firestoreService.getAllProducts();
+  Future<void> _loadInitial() async {
     setState(() {
-      _allProducts =
-          fetched
-              .where((p) => (p.status ?? '').toLowerCase() == 'available')
+      _isLoading = true;
+      _allProducts.clear();
+      _filtered.clear();
+      _page.clear();
+      _lastIndex = 0;
+      _hasMore = true;
+    });
+
+    final fetched = await _firestoreService.getAllProducts();
+    // sólo disponibles
+    _allProducts =
+        fetched
+            .where((p) => (p.status ?? '').toLowerCase() == 'available')
+            .toList();
+
+    _applyFilterSort();
+    setState(() => _isLoading = false);
+  }
+
+  void _applyFilterSort() {
+    // filtrar por categoría
+    _filtered =
+        (_selectedCategory == 'All')
+            ? List.from(_allProducts)
+            : _allProducts
+                .where((p) => p.category == _selectedCategory)
+                .toList();
+
+    // filtrar por texto
+    final term = _searchController.text.trim().toLowerCase();
+    if (term.isNotEmpty) {
+      _filtered =
+          _filtered
+              .where(
+                (p) => p.title != null && p.title!.toLowerCase().contains(term),
+              )
               .toList();
+    }
+
+    // ordenar
+    if (_selectedSort != null) {
+      switch (_selectedSort!) {
+        case SortOption.priceAsc:
+          _filtered.sort((a, b) => (a.price ?? 0).compareTo(b.price ?? 0));
+          break;
+        case SortOption.priceDesc:
+          _filtered.sort((a, b) => (b.price ?? 0).compareTo(a.price ?? 0));
+          break;
+        case SortOption.dateAsc:
+          _filtered.sort(
+            (a, b) => (a.createdAt ?? DateTime.now()).compareTo(
+              b.createdAt ?? DateTime.now(),
+            ),
+          );
+          break;
+        case SortOption.dateDesc:
+          _filtered.sort(
+            (a, b) => (b.createdAt ?? DateTime.now()).compareTo(
+              a.createdAt ?? DateTime.now(),
+            ),
+          );
+          break;
+      }
+    }
+
+    // reiniciar paginación
+    _page.clear();
+    _lastIndex = 0;
+    _hasMore = true;
+    _loadMore();
+  }
+
+  void _loadMore() {
+    if (!_hasMore) return;
+    setState(() => _isLoadingMore = true);
+
+    final nextIndex = min(_lastIndex + _perPage, _filtered.length);
+    final slice = _filtered.sublist(_lastIndex, nextIndex);
+
+    setState(() {
+      _page.addAll(slice);
+      _lastIndex = nextIndex;
+      _hasMore = _lastIndex < _filtered.length;
+      _isLoadingMore = false;
     });
   }
 
-  // Filter products based on search query
-  void _filterProducts(String query) {
-    final filtered =
-        _allProducts.where((p) {
-          final matchCategory =
-              _selectedCategory == 'All' || p.category == _selectedCategory;
-          final matchSearch =
-              query.isEmpty ||
-              (p.title ?? '').toLowerCase().contains(query.toLowerCase());
-          return matchCategory && matchSearch;
-        }).toList();
+  void _onSearchOrCategoryChanged() {
+    // limpiar búsqueda si cambio categoría
+    _searchController.clear();
+    _applyFilterSort();
+  }
 
-    setState(() {
-      _allProducts = filtered;
-    });
+  void _onSortSelected(SortOption opt) {
+    setState(() => _selectedSort = opt);
+    _applyFilterSort();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    _searchController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: null,
-        title: const Align(
-          alignment: Alignment.centerLeft,
-          child: Text(
-            'Earn',
-            style: TextStyle(
-              color: Colors.black,
-              fontWeight: FontWeight.bold,
-              fontSize: 24,
-            ),
-          ),
-        ),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Discover products that people are looking for,\nsell them and earn money.',
-              style: TextStyle(color: Colors.black54),
-            ),
-            const SizedBox(height: 16),
-            Align(
-              alignment: Alignment.centerRight,
-              child: DropdownButton<String>(
-                value: _selectedCategory,
-                items:
-                    _categories
-                        .map((c) => DropdownMenuItem(value: c, child: Text(c)))
-                        .toList(),
-                onChanged: (val) => setState(() => _selectedCategory = val!),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: const Color(0xFFE1E5F2),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _searchController,
-                      onChanged: (value) {
-                        setState(() {
-                          _filterProducts(value);
-                        });
-                      },
-                      decoration: const InputDecoration(
-                        hintText: 'What are you looking for?',
-                        hintStyle: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black,
-                        ),
-                        border: InputBorder.none,
-                      ),
-                    ),
+        title: const Text('Earn'),
+        actions: [
+          PopupMenuButton<SortOption>(
+            icon: const Icon(Icons.sort),
+            onSelected: _onSortSelected,
+            itemBuilder:
+                (_) => const [
+                  PopupMenuItem(
+                    value: SortOption.priceAsc,
+                    child: Text('Price: Low → High'),
                   ),
-                  const SizedBox(width: 8),
-                  ElevatedButton(
-                    onPressed: () {
-                      _saveToCache(
-                        Product(
-                          id: 'search_${DateTime.now().millisecondsSinceEpoch}', // Dummy id for search terms
-                          title: _searchController.text,
-                          price: 0, // Placeholder for search
-                        ),
-                      );
-                      setState(() {});
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF1F7A8C),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 12,
-                      ),
-                    ),
-                    child: const Text(
-                      'Search',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                  PopupMenuItem(
+                    value: SortOption.priceDesc,
+                    child: Text('Price: High → Low'),
+                  ),
+                  PopupMenuItem(
+                    value: SortOption.dateAsc,
+                    child: Text('Date: Old → New'),
+                  ),
+                  PopupMenuItem(
+                    value: SortOption.dateDesc,
+                    child: Text('Date: New → Old'),
                   ),
                 ],
-              ),
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          // filtros
+          Padding(
+            padding: const EdgeInsets.all(8),
+            child: Row(
+              children: [
+                DropdownButton<String>(
+                  value: _selectedCategory,
+                  items:
+                      _categories
+                          .map(
+                            (c) => DropdownMenuItem(value: c, child: Text(c)),
+                          )
+                          .toList(),
+                  onChanged: (v) {
+                    _selectedCategory = v!;
+                    _onSearchOrCategoryChanged();
+                  },
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: TextField(
+                    controller: _searchController,
+                    decoration: const InputDecoration(
+                      hintText: 'Search…',
+                      border: OutlineInputBorder(),
+                    ),
+                    onSubmitted: (_) => _applyFilterSort(),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                ElevatedButton(
+                  onPressed: _applyFilterSort,
+                  child: const Text('Go'),
+                ),
+              ],
             ),
-            const SizedBox(height: 16),
-            Expanded(
-              child:
-                  _allProducts.isEmpty
-                      ? const Center(
-                        child: Text(
-                          "No products found.\nTry changing the category or search term.",
-                          textAlign: TextAlign.center,
-                          style: TextStyle(color: Colors.grey),
-                        ),
-                      )
-                      : ListView.builder(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        itemCount: _allProducts.length,
-                        itemBuilder: (context, index) {
-                          final product = _allProducts[index];
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(20),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.grey.withOpacity(0.2),
-                                    spreadRadius: 1,
-                                    blurRadius: 5,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ],
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Center(
-                                    child: Container(
-                                      width:
-                                          MediaQuery.of(context).size.width *
-                                          0.82,
-                                      decoration: BoxDecoration(
-                                        color: Colors.grey[300],
-                                        borderRadius: BorderRadius.circular(16),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: Colors.grey.withOpacity(0.2),
-                                            spreadRadius: 1,
-                                            blurRadius: 4,
-                                            offset: const Offset(0, 2),
-                                          ),
-                                        ],
-                                      ),
-                                      padding: const EdgeInsets.all(15),
-                                      child: ClipRRect(
-                                        borderRadius: BorderRadius.circular(12),
-                                        child:
-                                            product.image != null &&
-                                                    product.image!.startsWith(
-                                                      'http',
-                                                    )
-                                                ? CachedNetworkImage(
-                                                  imageUrl: product.image!,
-                                                  fit: BoxFit.contain,
-                                                  height: 200,
-                                                  placeholder:
-                                                      (context, url) =>
-                                                          const CircularProgressIndicator(),
-                                                  errorWidget:
-                                                      (context, url, error) =>
-                                                          const Icon(
-                                                            Icons.error,
-                                                          ),
-                                                )
-                                                : const Icon(
-                                                  Icons.image,
-                                                  size: 200,
-                                                ),
-                                      ),
-                                    ),
-                                  ),
-                                  Padding(
-                                    padding: const EdgeInsets.all(16),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          product.title ?? '',
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 16,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 12),
-                                        Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceBetween,
-                                          children: [
-                                            Text(
-                                              "\$${product.price?.toStringAsFixed(0) ?? '0'} COP",
-                                              style: const TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 16,
-                                                color: Color.fromARGB(
-                                                  255,
-                                                  205,
-                                                  9,
-                                                  9,
-                                                ),
-                                              ),
-                                            ),
-                                            ElevatedButton(
-                                              onPressed: () {
-                                                Navigator.push(
-                                                  context,
-                                                  MaterialPageRoute(
-                                                    builder:
-                                                        (context) =>
-                                                            SellProductDetail(
-                                                              productId:
-                                                                  product.id,
-                                                            ),
-                                                  ),
-                                                );
-                                              },
-                                              style: ElevatedButton.styleFrom(
-                                                backgroundColor: const Color(
-                                                  0xFF1F7A8C,
-                                                ),
-                                                shape: RoundedRectangleBorder(
-                                                  borderRadius:
-                                                      BorderRadius.circular(8),
-                                                ),
-                                              ),
-                                              child: const Text(
-                                                'Details',
-                                                style: TextStyle(
-                                                  color: Colors.white,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
+          ),
+          // lista
+          Expanded(
+            child:
+                _isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : ListView.builder(
+                      controller: _scrollController,
+                      itemCount: _page.length + (_hasMore ? 1 : 0),
+                      itemBuilder: (ctx, i) {
+                        if (i == _page.length) {
+                          return const Padding(
+                            padding: EdgeInsets.all(8),
+                            child: Center(child: CircularProgressIndicator()),
                           );
-                        },
-                      ),
-            ),
-          ],
-        ),
+                        }
+                        final p = _page[i];
+                        return ListTile(
+                          leading:
+                              p.image != null && p.image!.startsWith('http')
+                                  ? CachedNetworkImage(
+                                    imageUrl: p.image!,
+                                    width: 50,
+                                    placeholder:
+                                        (_, __) =>
+                                            const CircularProgressIndicator(),
+                                    errorWidget:
+                                        (_, __, ___) => const Icon(Icons.error),
+                                  )
+                                  : const Icon(Icons.image),
+                          title: Text(p.title ?? ''),
+                          subtitle: Text(
+                            "\$${p.price?.toStringAsFixed(0) ?? '0'} COP",
+                          ),
+                          trailing: IconButton(
+                            icon: const Icon(Icons.share),
+                            onPressed: () {
+                              Share.share(
+                                'Check out this listing: ${p.title} for \$${p.price?.toStringAsFixed(0)} COP',
+                              );
+                            },
+                          ),
+                          onTap:
+                              () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder:
+                                      (_) => SellProductDetail(productId: p.id),
+                                ),
+                              ),
+                        );
+                      },
+                    ),
+          ),
+        ],
       ),
     );
   }
