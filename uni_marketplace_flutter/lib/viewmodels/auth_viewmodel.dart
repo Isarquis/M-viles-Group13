@@ -7,7 +7,7 @@ import '../services/firestore_service.dart';
 class AuthViewModel extends ChangeNotifier {
   final AuthService _authService = AuthService();
   final FirestoreService _firestoreService = FirestoreService();
-
+  
   bool _loading = false;
   bool get loading => _loading;
 
@@ -28,7 +28,6 @@ class AuthViewModel extends ChangeNotifier {
     }
   }
 
-
   Future<User?> register(
     String email,
     String password,
@@ -48,7 +47,6 @@ class AuthViewModel extends ChangeNotifier {
         profileImageFile: profileImageFile,
       );
 
-
       _setError(null);
       return user;
     } catch (e) {
@@ -60,19 +58,8 @@ class AuthViewModel extends ChangeNotifier {
       return null;
     } finally {
       setLoading(false);
-
     }
-
-    _setError(null);
-    return user;
-  } catch (e) {
-    _setError(e.toString());
-    return null;
-  } finally {
-    setLoading(false);
   }
-}
-
 
   void setLoading(bool val) {
     _loading = val;

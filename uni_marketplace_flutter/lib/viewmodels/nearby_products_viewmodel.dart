@@ -38,9 +38,16 @@ class NearbyProductsViewModel extends ChangeNotifier {
         }).toList();
 
     markers.clear(); // Clear previous markers
+    final Map<String, BitmapDescriptor> iconCache = {};
     for (var product in nearbyProducts) {
       if (product.image != null) {
-        BitmapDescriptor icon = await _getProductMarkerIcon(product.image!);
+        BitmapDescriptor icon;
+        if (iconCache.containsKey(product.image)) {
+          icon = iconCache[product.image]!;
+        } else {
+          icon = await _getProductMarkerIcon(product.image!);
+          iconCache[product.image!] = icon;
+        }
         markers.add(
           Marker(
             markerId: MarkerId(product.id),
@@ -48,7 +55,6 @@ class NearbyProductsViewModel extends ChangeNotifier {
             icon: icon,
             onTap: () {
               selectProduct(product);
- 
             },
           ),
         );

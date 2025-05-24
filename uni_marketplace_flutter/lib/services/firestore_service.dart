@@ -18,29 +18,27 @@ class FirestoreService {
 
   // USERS
   Future<void> createUser(String userId, Map<String, dynamic> data) async {
-  try {
-    String imageUrl = '';
+    try {
+      String imageUrl = '';
 
-    // Si existe imagen, se sube
-    if (data.containsKey('imageFile') && data['imageFile'] is File) {
-      imageUrl = await uploadImageToS3(data['imageFile']);
-    } else {
-      // Asignar imagen predeterminada
-      imageUrl = 'https://unimarketimagesbucket.s3.us-west-1.amazonaws.com/default-user.jpg';
+      // Si existe imagen, se sube
+      if (data.containsKey('imageFile') && data['imageFile'] is File) {
+        imageUrl = await uploadImageToS3(data['imageFile']);
+      } else {
+        // Asignar imagen predeterminada
+        imageUrl =
+            'https://unimarketimagesbucket.s3.us-west-1.amazonaws.com/default-user.jpg';
+      }
+
+      data['profileImage'] = imageUrl;
+
+      await _db.collection('users').doc(userId).set(data);
+      print('Usuario creado con imagen: $imageUrl');
+    } catch (e) {
+      print('Error en createUser: $e');
+      rethrow;
     }
-
-    data['profileImage'] = imageUrl;
-
-    await _db.collection('users').doc(userId).set(data);
-    print('Usuario creado con imagen: $imageUrl');
-    
-  } catch (e) {
-    print('Error en createUser: $e');
-    rethrow;
   }
-}
-
-
 
   Future<void> logPurchase(String productId, int price, String category) async {
     final userId = FirebaseAuth.instance.currentUser?.uid;
@@ -70,71 +68,72 @@ class FirestoreService {
   }
 
   Future<void> registerUserWithGender(
+    String userId,
+    Map<String, dynamic> data,
+    String gender, {
+    File? profileImageFile, // <-- Nuevo parámetro opcional
+  }) async {
+    try {
+      print('Registrando usuario con género: $gender');
 
-  String userId,
-  Map<String, dynamic> data,
-  String gender, {
-  File? profileImageFile,  // <-- Nuevo parámetro opcional
-}) async {
-  try {
-    print('Registrando usuario con género: $gender');
+      String imageUrl = '';
 
-    String imageUrl = '';
+      // Si el usuario ha subido una imagen, se sube a S3
+      if (profileImageFile != null) {
+        imageUrl = await uploadImageToS3(profileImageFile);
+        print('Imagen personalizada subida a S3: $imageUrl');
+      } else {
+        // Asignar imagen predeterminada según género
+        imageUrl =
+            gender.toLowerCase() == 'male'
+                ? 'https://unimarketimagesbucket.s3.us-west-1.amazonaws.com/bidder2.jpg'
+                : 'https://unimarketimagesbucket.s3.us-west-1.amazonaws.com/bidder1.jpg';
 
-    // Si el usuario ha subido una imagen, se sube a S3
-    if (profileImageFile != null) {
-      imageUrl = await uploadImageToS3(profileImageFile);
-      print('Imagen personalizada subida a S3: $imageUrl');
-    } else {
-      // Asignar imagen predeterminada según género
-      imageUrl = gender.toLowerCase() == 'male'
-          ? 'https://unimarketimagesbucket.s3.us-west-1.amazonaws.com/bidder2.jpg'
-          : 'https://unimarketimagesbucket.s3.us-west-1.amazonaws.com/bidder1.jpg';
+        print('Imagen predeterminada asignada: $imageUrl');
+      }
 
-      print('Imagen predeterminada asignada: $imageUrl');
+      final userData = {
+        'email': data['email'] ?? '',
+        'name': data['name'] ?? '',
+        'phone': data['phone'] ?? '',
+        'image': imageUrl,
+        'createdAt': FieldValue.serverTimestamp(),
+      };
+
+      await _db.collection('users').doc(userId).set(userData);
+      print('Usuario registrado: $userData');
+    } catch (e) {
+      print('Error en registerUserWithGender: $e');
+      rethrow;
     }
-
-    final userData = {
-      'email': data['email'] ?? '',
-      'name': data['name'] ?? '',
-      'phone': data['phone'] ?? '',
-      'image': imageUrl,
-      'createdAt': FieldValue.serverTimestamp(),
-    };
-
-    await _db.collection('users').doc(userId).set(userData);
-    print('Usuario registrado: $userData');
-    
-  } catch (e) {
-    print('Error en registerUserWithGender: $e');
-    rethrow;
   }
 
-}
-Future<String> uploadImageToS3(File imageFile) async {
-  try {
-    String fileName = '${DateTime.now().millisecondsSinceEpoch}.jpg';
+  Future<String> uploadImageToS3(File imageFile) async {
+    try {
+      String fileName = '${DateTime.now().millisecondsSinceEpoch}.jpg';
 
-    final uri = Uri.parse('https://unimarketimagesbucket.s3.us-west-1.amazonaws.com/$fileName');
+      final uri = Uri.parse(
+        'https://unimarketimagesbucket.s3.us-west-1.amazonaws.com/$fileName',
+      );
 
-    final request = http.Request('PUT', uri)
-      ..headers['Content-Type'] = 'image/jpeg'
-      ..bodyBytes = imageFile.readAsBytesSync();
+      final request =
+          http.Request('PUT', uri)
+            ..headers['Content-Type'] = 'image/jpeg'
+            ..bodyBytes = imageFile.readAsBytesSync();
 
-    final response = await request.send();
+      final response = await request.send();
 
-    if (response.statusCode == 200) {
-      print('Imagen subida a S3: $uri');
-      return uri.toString();
-    } else {
-      throw Exception('Error subiendo imagen: ${response.statusCode}');
+      if (response.statusCode == 200) {
+        print('Imagen subida a S3: $uri');
+        return uri.toString();
+      } else {
+        throw Exception('Error subiendo imagen: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error en uploadImageToS3: $e');
+      rethrow;
     }
-  } catch (e) {
-    print('Error en uploadImageToS3: $e');
-    rethrow;
   }
-}
-
 
   // PRODUCTS
 
@@ -145,9 +144,6 @@ Future<String> uploadImageToS3(File imageFile) async {
       throw Exception('Error adding product: $e');
     }
   }
-
-
-  
 
   Future<List<Product>> getAllProducts() async {
     var snapshot = await _db.collection('products').get();
@@ -277,12 +273,15 @@ Future<String> uploadImageToS3(File imageFile) async {
         .toList();
   }
 
-  Future<List<Map<String, dynamic>>> getSaleTransactionsBySeller(String sellerId) async {
-    var snapshot = await _db
-        .collection('transactions')
-        .where('sellerId', isEqualTo: sellerId)
-        .where('type', isEqualTo: 'Sale')
-        .get();
+  Future<List<Map<String, dynamic>>> getSaleTransactionsBySeller(
+    String sellerId,
+  ) async {
+    var snapshot =
+        await _db
+            .collection('transactions')
+            .where('sellerId', isEqualTo: sellerId)
+            .where('type', isEqualTo: 'Sale')
+            .get();
 
     return snapshot.docs
         .map((doc) => doc.data() as Map<String, dynamic>)
@@ -398,6 +397,42 @@ Future<String> uploadImageToS3(File imageFile) async {
     });
   }
 
+  Future<void> logPostStep({
+    required String step,
+    required String userId,
+    required String attemptId,
+  }) async {
+    try {
+      await _db.collection('logs').add({
+        'type': 'post_step',
+        'step': step,
+        'user_id': userId,
+        'attempt_id': attemptId,
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+      print('Log de paso guardado: $step');
+    } catch (e) {
+      print('Error al guardar log de paso: $e');
+    }
+  }
+
+  Future<void> logProductPosting({
+    required String category,
+    required List<String> transactionTypes,
+    required String userId,
+  }) async {
+    final timestamp = FieldValue.serverTimestamp();
+    for (final type in transactionTypes) {
+      await _db.collection('logs').add({
+        'type': 'posting_log',
+        'category': category,
+        'transactionType': type,
+        'userId': userId,
+        'timestamp': timestamp,
+      });
+    }
+  }
+
   Future<void> logResponseTime(
     DateTime requestedAt,
     DateTime receivedAt,
@@ -467,4 +502,3 @@ Future<List<Product>> getProductsMatchingTerms(List<String> terms) async {
 
   return results.toList();
 }
-

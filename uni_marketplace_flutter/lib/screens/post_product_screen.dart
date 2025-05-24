@@ -1,4 +1,6 @@
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'dart:io';
 import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
@@ -9,8 +11,7 @@ import 'package:uuid/uuid.dart';
 import 'dart:async';
 
 class PostProductScreen extends StatefulWidget {
-  final VoidCallback
-  onProductPosted; // Callback para notificar que el producto fue publicado
+  final VoidCallback onProductPosted;
 
   const PostProductScreen({super.key, required this.onProductPosted});
 
@@ -32,26 +33,44 @@ class _PostProductScreenState extends State<PostProductScreen> {
   double? _longitude;
   Timer? _debounceTimer;
   bool _isProcessing = false;
+  late String _attemptId;
 
   late final PostProductViewModel _viewModel;
   final List<String> _categories = ['Math', 'Science', 'Tech'];
 
+  late Box productBox;
+  late Box imageBox;
+
+  @override
   @override
   void initState() {
     super.initState();
     _viewModel = PostProductViewModel(FirestoreService());
     _getLocation();
+    _initHive();
+
+    final userId = FirebaseAuth.instance.currentUser?.uid ?? 'anonymous';
+    _attemptId = const Uuid().v4(); // <-- muevelo a nivel de clase
+    _viewModel.logPostStep(
+      step: 'start_post',
+      userId: userId,
+      attemptId: _attemptId,
+    );
   }
 
-  @override
-  void dispose() {
-    _debounceTimer?.cancel();
-    _nameController.dispose();
-    _descriptionController.dispose();
-    _priceController.dispose();
-    _emailController.dispose();
-    _baseBidController.dispose();
-    super.dispose();
+  Future<void> _initHive() {
+    return Hive.openBox('pending_products')
+        .then((box) {
+          productBox = box;
+          return Hive.openBox('product_images');
+        })
+        .then((box) {
+          imageBox = box;
+          print('Hive boxes initialized with .then() chaining');
+        })
+        .catchError((e) {
+          print('Error initializing Hive boxes: $e');
+        });
   }
 
   Future<void> _getLocation() async {
@@ -79,15 +98,29 @@ class _PostProductScreenState extends State<PostProductScreen> {
     );
     if (file != null) {
       setState(() => _image = File(file.path));
+
+      // Log de paso: imagen seleccionada
+      final userId = FirebaseAuth.instance.currentUser?.uid ?? 'anonymous';
+      await _viewModel.logPostStep(
+        step: 'image_selected',
+        userId: userId,
+        attemptId: _attemptId,
+      );
     }
   }
 
   Future<void> _postProduct() async {
+    final connectivityResult = await Connectivity().checkConnectivity();
+    if (connectivityResult == ConnectivityResult.none) {
+      _snack('No internet connection, product will be saved for later upload.');
+      // El guardado local ya está implementado en tu ViewModel postProduct
+      return;
+    }
+
     if (_isProcessing || (_debounceTimer?.isActive ?? false)) {
       print('PostProductScreen: Intento en curso o debounce activo, ignorando');
       return;
     }
-
     _isProcessing = true;
     _debounceTimer = Timer(const Duration(seconds: 2), () {});
     setState(() => _isLoading = true);
@@ -134,6 +167,17 @@ class _PostProductScreenState extends State<PostProductScreen> {
         ownerId: ownerId,
         attemptId: attemptId,
       );
+      final userId = FirebaseAuth.instance.currentUser?.uid ?? 'anonymous';
+      await _viewModel.logPostStep(
+        step: 'post_success',
+        userId: userId,
+        attemptId: _attemptId,
+      );
+      await _viewModel.logProductPosting(
+        category: _selectedCategory,
+        transactionTypes: _transactionTypes,
+        userId: ownerId,
+      );
 
       _snack('Producto publicado exitosamente');
       widget.onProductPosted(); // Invoca el callback para cambiar a ProductList
@@ -147,6 +191,8 @@ class _PostProductScreenState extends State<PostProductScreen> {
         _snack('Datos del producto inválidos, por favor verifica');
       } else if (e.toString().contains('Invalid email format')) {
         _snack('Email inválido');
+      } else if (e.toString().contains('Invalid double')) {
+        _snack('Precio o base de puja inválidos');
       } else {
         _snack('Error: $e');
       }
@@ -156,6 +202,25 @@ class _PostProductScreenState extends State<PostProductScreen> {
     }
   }
 
+  Future<String> _saveImageLocally(File image) async {
+    try {
+      final localPath =
+          '${Directory.systemTemp.path}/${DateTime.now().millisecondsSinceEpoch}.jpg';
+      await image.copy(localPath);
+      return localPath;
+    } catch (e) {
+      throw Exception('Error al guardar la imagen localmente: $e');
+    }
+  }
+
+  Future<void> _saveProductLocally(Map<String, dynamic> productData) async {
+    await productBox.put(productData['attemptId'], productData);
+    print(
+      'Producto guardado localmente con attemptId: ${productData['attemptId']}',
+    );
+  }
+
+  // Mostrar un snackbar con el mensaje
   void _snack(String m) =>
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m)));
 
@@ -285,7 +350,16 @@ class _PostProductScreenState extends State<PostProductScreen> {
                         ),
                       );
                     }).toList(),
-                onChanged: (v) => setState(() => _selectedCategory = v!),
+                onChanged: (v) async {
+                  setState(() => _selectedCategory = v!);
+                  final userId =
+                      FirebaseAuth.instance.currentUser?.uid ?? 'anonymous';
+                  await _viewModel.logPostStep(
+                    step: 'category_selected',
+                    userId: userId,
+                    attemptId: _attemptId,
+                  );
+                },
               ),
               const SizedBox(height: 16),
               TextField(
@@ -293,6 +367,15 @@ class _PostProductScreenState extends State<PostProductScreen> {
                 keyboardType: TextInputType.number,
                 decoration: const InputDecoration(labelText: 'Price (COP)'),
                 style: const TextStyle(fontFamily: 'Work Sans', fontSize: 16),
+                onEditingComplete: () async {
+                  final userId =
+                      FirebaseAuth.instance.currentUser?.uid ?? 'anonymous';
+                  await _viewModel.logPostStep(
+                    step: 'price_entered',
+                    userId: userId,
+                    attemptId: _attemptId,
+                  );
+                },
               ),
               const SizedBox(height: 16),
               if (_transactionTypes.contains('Bidding')) ...[
@@ -303,6 +386,15 @@ class _PostProductScreenState extends State<PostProductScreen> {
                     labelText: 'Base Bid (COP)',
                   ),
                   style: const TextStyle(fontFamily: 'Work Sans', fontSize: 16),
+                  onEditingComplete: () async {
+                    final userId =
+                        FirebaseAuth.instance.currentUser?.uid ?? 'anonymous';
+                    await _viewModel.logPostStep(
+                      step: 'base_bid_entered',
+                      userId: userId,
+                      attemptId: _attemptId,
+                    );
+                  },
                 ),
                 const SizedBox(height: 16),
               ],
@@ -330,6 +422,15 @@ class _PostProductScreenState extends State<PostProductScreen> {
                 keyboardType: TextInputType.emailAddress,
                 decoration: const InputDecoration(labelText: 'Contact Email'),
                 style: const TextStyle(fontFamily: 'Work Sans', fontSize: 16),
+                onEditingComplete: () async {
+                  final userId =
+                      FirebaseAuth.instance.currentUser?.uid ?? 'anonymous';
+                  await _viewModel.logPostStep(
+                    step: 'email_entered',
+                    userId: userId,
+                    attemptId: _attemptId,
+                  );
+                },
               ),
               const SizedBox(height: 20),
               Center(
