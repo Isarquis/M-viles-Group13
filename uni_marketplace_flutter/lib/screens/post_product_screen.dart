@@ -1,3 +1,4 @@
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'dart:io';
@@ -109,11 +110,17 @@ class _PostProductScreenState extends State<PostProductScreen> {
   }
 
   Future<void> _postProduct() async {
+    final connectivityResult = await Connectivity().checkConnectivity();
+    if (connectivityResult == ConnectivityResult.none) {
+      _snack('No internet connection, product will be saved for later upload.');
+      // El guardado local ya está implementado en tu ViewModel postProduct
+      return;
+    }
+
     if (_isProcessing || (_debounceTimer?.isActive ?? false)) {
       print('PostProductScreen: Intento en curso o debounce activo, ignorando');
       return;
     }
-
     _isProcessing = true;
     _debounceTimer = Timer(const Duration(seconds: 2), () {});
     setState(() => _isLoading = true);

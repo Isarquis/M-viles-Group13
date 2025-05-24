@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:uni_marketplace_flutter/services/firestore_service.dart';
 import 'package:uni_marketplace_flutter/viewmodels/sell_product_detail_viewmodel.dart';
 
@@ -13,6 +15,8 @@ class SellProductDetail extends StatefulWidget {
 }
 
 class _SellProductDetailState extends State<SellProductDetail> {
+  bool _isSelling = false;
+
   @override
   void initState() {
     super.initState();
@@ -25,6 +29,21 @@ class _SellProductDetailState extends State<SellProductDetail> {
         content: Text('Selling feature will be implemented in the future'),
       ),
     );
+  }
+
+  void _shareProduct(Map<String, dynamic> product) {
+    final title = product['name'] ?? 'Product';
+    final price = product['price'] != null ? '\$${product['price']} COP' : '';
+    Share.share('Check out this listing: $title for $price');
+  }
+
+  void _handleSellPressed() async {
+    setState(() => _isSelling = true);
+    FirestoreService().logFeatureUsage('button_sell');
+
+    await Future.delayed(const Duration(seconds: 1));
+    setState(() => _isSelling = false);
+    _showFutureMessage();
   }
 
   @override
@@ -42,17 +61,19 @@ class _SellProductDetailState extends State<SellProductDetail> {
           final product = viewModel.product!;
           final owner = viewModel.owner!;
           final phoneNumber =
-              owner['phone'] != ''
-                  ? owner['phone']
-                  : '+573243223541'; // Fallback from screenshot
+              owner['phone'] != '' ? owner['phone'] : '+573243223541';
           final email =
               owner['email'] != ''
                   ? owner['email']
-                  : 'd.zamorac@uniandes.edu.co'; // Fallback from screenshot
+                  : 'd.zamorac@uniandes.edu.co';
           final ownerName =
-              owner['name'] != 'Unknown Owner'
-                  ? owner['name']
-                  : 'David Zamora'; // Fallback from screenshot
+              owner['name'] != 'Unknown Owner' ? owner['name'] : 'David Zamora';
+
+          final imageUrl = product['imageUrl'];
+          if (imageUrl != null && imageUrl.toString().startsWith('http')) {
+            // Precache image to improve UX
+            precacheImage(CachedNetworkImageProvider(imageUrl), context);
+          }
 
           return Scaffold(
             backgroundColor: Colors.white,
@@ -64,6 +85,13 @@ class _SellProductDetailState extends State<SellProductDetail> {
                 'Detail Producto',
                 style: TextStyle(color: Colors.black),
               ),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.share, color: Color(0xFF1F7A8C)),
+                  onPressed: () => _shareProduct(product),
+                  tooltip: 'Share Listing',
+                ),
+              ],
             ),
             body: Padding(
               padding: const EdgeInsets.all(16),
@@ -71,7 +99,6 @@ class _SellProductDetailState extends State<SellProductDetail> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Product Image
                     Center(
                       child: ConstrainedBox(
                         constraints: BoxConstraints(
@@ -82,16 +109,19 @@ class _SellProductDetailState extends State<SellProductDetail> {
                                       'http',
                                     ) ??
                                     false)
-                                ? Image.network(
-                                  product['imageUrl'],
+                                ? CachedNetworkImage(
+                                  imageUrl: product['imageUrl'],
                                   fit: BoxFit.contain,
-                                  errorBuilder:
-                                      (context, error, stackTrace) =>
-                                          const Icon(
-                                            Icons.broken_image,
-                                            size: 150,
-                                            color: Colors.grey,
-                                          ),
+                                  placeholder:
+                                      (context, url) => const Center(
+                                        child: CircularProgressIndicator(),
+                                      ),
+                                  errorWidget:
+                                      (context, url, error) => const Icon(
+                                        Icons.broken_image,
+                                        size: 150,
+                                        color: Colors.grey,
+                                      ),
                                 )
                                 : Image.asset(
                                   'assets/images/placeholder.png',
@@ -107,7 +137,6 @@ class _SellProductDetailState extends State<SellProductDetail> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    // Product Title
                     Text(
                       product['name'].toUpperCase(),
                       style: const TextStyle(
@@ -116,17 +145,15 @@ class _SellProductDetailState extends State<SellProductDetail> {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    // Product Price
                     Text(
                       '\$${product['price']}',
                       style: const TextStyle(
-                        color: Color(0xFF2B7B35),
+                        color: Color.fromARGB(255, 201, 56, 56),
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
                       ),
                     ),
                     const SizedBox(height: 16),
-                    // Description Section
                     const Text(
                       'About the book',
                       style: TextStyle(
@@ -140,13 +167,9 @@ class _SellProductDetailState extends State<SellProductDetail> {
                       style: const TextStyle(fontSize: 14),
                     ),
                     const SizedBox(height: 16),
-                    // Sell Button
                     Center(
                       child: ElevatedButton(
-                        onPressed: () {
-                          FirestoreService().logFeatureUsage('button_sell');
-                          _showFutureMessage();
-                        },
+                        onPressed: _isSelling ? null : _handleSellPressed,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF1F7A8C),
                           shape: RoundedRectangleBorder(
@@ -157,17 +180,26 @@ class _SellProductDetailState extends State<SellProductDetail> {
                             vertical: 12,
                           ),
                         ),
-                        child: const Text(
-                          'Sell',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                        child:
+                            _isSelling
+                                ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                                : const Text(
+                                  'Sell',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                       ),
                     ),
                     const SizedBox(height: 16),
-                    // Owner Information
                     ListTile(
                       leading: CircleAvatar(
                         backgroundColor: Colors.grey[300],

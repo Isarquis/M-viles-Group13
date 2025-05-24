@@ -17,7 +17,7 @@ class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final ValueNotifier<bool> _rememberMe = ValueNotifier(false);
+  bool _rememberMe = false;
 
   @override
   void initState() {
@@ -31,14 +31,14 @@ class _LoginPageState extends State<LoginPage> {
     if (savedEmail != null) {
       setState(() {
         _emailController.text = savedEmail;
-        _rememberMe.value = true;
+        _rememberMe = true;
       });
     }
   }
 
   Future<void> _saveEmail() async {
     final prefs = await SharedPreferences.getInstance();
-    if (_rememberMe.value) {
+    if (_rememberMe) {
       await prefs.setString('saved_email', _emailController.text.trim());
     } else {
       await prefs.remove('saved_email');
@@ -77,71 +77,85 @@ class _LoginPageState extends State<LoginPage> {
                 TextFormField(
                   controller: _emailController,
                   decoration: _inputDecoration('E-mail'),
-                  validator: (value) => value != null && value.contains('@')
-                      ? null
-                      : 'Enter a valid email',
+                  validator:
+                      (value) =>
+                          value != null && value.contains('@')
+                              ? null
+                              : 'Enter a valid email',
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _passwordController,
                   obscureText: true,
                   decoration: _inputDecoration('Password'),
-                  validator: (value) =>
-                      value != null && value.length >= 6 ? null : 'Min 6 characters',
+                  validator:
+                      (value) =>
+                          value != null && value.length >= 6
+                              ? null
+                              : 'Min 6 characters',
                 ),
                 const SizedBox(height: 16),
-                ValueListenableBuilder<bool>(
-                  valueListenable: _rememberMe,
-                  builder: (context, value, child) => Row(
-                    children: [
-                      Checkbox(
-                        value: value,
-                        onChanged: (checked) => _rememberMe.value = checked ?? false,
-                      ),
-                      const Text('Remember me'),
-                    ],
-                  ),
+                Row(
+                  children: [
+                    Checkbox(
+                      value: _rememberMe,
+                      onChanged: (value) {
+                        setState(() {
+                          _rememberMe = value ?? false;
+                        });
+                      },
+                    ),
+                    const Text('Remember me'),
+                  ],
                 ),
                 const SizedBox(height: 30),
                 ElevatedButton(
                   style: _buttonStyle(),
-                  onPressed: viewModel.loading
-                      ? null
-                      : () async {
-                          if (_formKey.currentState!.validate()) {
-                            final connectivityResult = await Connectivity().checkConnectivity();
-                            if (connectivityResult == ConnectivityResult.none) {
-                              _showAlert('No Connection', 'Please connect to the internet to login.');
-                              return;
-                            }
-
-                            viewModel.setLoading(true);
-
-                            try {
-                              final user = await viewModel.login(
-                                _emailController.text.trim(),
-                                _passwordController.text.trim(),
-                              );
-
-                              if (user != null) {
-                                await _saveEmail();
-                                Navigator.pushReplacement(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => HomeScreen(userId: user.uid),
-                                  ),
+                  onPressed:
+                      viewModel.loading
+                          ? null
+                          : () async {
+                            if (_formKey.currentState!.validate()) {
+                              final connectivityResult =
+                                  await Connectivity().checkConnectivity();
+                              if (connectivityResult ==
+                                  ConnectivityResult.none) {
+                                _showAlert(
+                                  'No Connection',
+                                  'Please connect to the internet to login.',
                                 );
+                                return;
                               }
-                            } catch (error) {
-                              _showAlert('Login Failed', error.toString());
-                            } finally {
-                              viewModel.setLoading(false);
+
+                              viewModel.setLoading(true);
+
+                              try {
+                                final user = await viewModel.login(
+                                  _emailController.text.trim(),
+                                  _passwordController.text.trim(),
+                                );
+
+                                if (user != null) {
+                                  await _saveEmail();
+                                  Navigator.pushReplacement(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder:
+                                          (_) => HomeScreen(userId: user.uid),
+                                    ),
+                                  );
+                                }
+                              } catch (error) {
+                                _showAlert('Login Failed', error.toString());
+                              } finally {
+                                viewModel.setLoading(false);
+                              }
                             }
-                          }
-                        },
-                  child: viewModel.loading
-                      ? const CircularProgressIndicator()
-                      : const Text("LOGIN"),
+                          },
+                  child:
+                      viewModel.loading
+                          ? const CircularProgressIndicator()
+                          : const Text("LOGIN"),
                 ),
                 const SizedBox(height: 16),
                 TextButton(
@@ -174,16 +188,17 @@ class _LoginPageState extends State<LoginPage> {
   void _showAlert(String title, String message) {
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        title: Text(title),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
+      builder:
+          (_) => AlertDialog(
+            title: Text(title),
+            content: Text(message),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('OK'),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 }
