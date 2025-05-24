@@ -1194,7 +1194,7 @@ PODS:
   - BoringSSL-GRPC/Implementation (0.0.37):
     - BoringSSL-GRPC/Interface (= 0.0.37)
   - BoringSSL-GRPC/Interface (0.0.37)
-  - cloud_firestore (5.6.7):
+  - cloud_firestore (5.6.5):
     - Firebase/Firestore (= 11.10.0)
     - firebase_core
     - Flutter
@@ -1212,14 +1212,14 @@ PODS:
   - Firebase/Storage (11.10.0):
     - Firebase/CoreOnly
     - FirebaseStorage (~> 11.10.0)
-  - firebase_auth (5.5.3):
+  - firebase_auth (5.5.2):
     - Firebase/Auth (= 11.10.0)
     - firebase_core
     - Flutter
   - firebase_core (3.13.0):
     - Firebase/CoreOnly (= 11.10.0)
     - Flutter
-  - firebase_storage (12.4.5):
+  - firebase_storage (12.4.4):
     - Firebase/Storage (= 11.10.0)
     - firebase_core
     - Flutter
@@ -1438,6 +1438,8 @@ PODS:
   - SDWebImageWebPCoder (0.14.6):
     - libwebp (~> 1.0)
     - SDWebImage/Core (~> 5.17)
+  - share_plus (0.0.1):
+    - Flutter
   - shared_preferences_foundation (0.0.1):
     - Flutter
     - FlutterMacOS
@@ -1460,6 +1462,7 @@ DEPENDENCIES:
   - image_picker_ios (from `.symlinks/plugins/image_picker_ios/ios`)
   - location (from `.symlinks/plugins/location/ios`)
   - path_provider_foundation (from `.symlinks/plugins/path_provider_foundation/darwin`)
+  - share_plus (from `.symlinks/plugins/share_plus/ios`)
   - shared_preferences_foundation (from `.symlinks/plugins/shared_preferences_foundation/darwin`)
   - sqflite_darwin (from `.symlinks/plugins/sqflite_darwin/darwin`)
 
@@ -1518,6 +1521,8 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/location/ios"
   path_provider_foundation:
     :path: ".symlinks/plugins/path_provider_foundation/darwin"
+  share_plus:
+    :path: ".symlinks/plugins/share_plus/ios"
   shared_preferences_foundation:
     :path: ".symlinks/plugins/shared_preferences_foundation/darwin"
   sqflite_darwin:
@@ -1563,6 +1568,7 @@ SPEC CHECKSUMS:
   RecaptchaInterop: 11e0b637842dfb48308d242afc3f448062325aba
   SDWebImage: f84b0feeb08d2d11e6a9b843cb06d75ebf5b8868
   SDWebImageWebPCoder: e38c0a70396191361d60c092933e22c20d5b1380
+  share_plus: 4dfe6f47fc3248e89b3eea0be59a95d0433ebe1a
   shared_preferences_foundation: 9e1978ff2562383bd5676f64ec4e9aa8fa06a6f7
   sqflite_darwin: 20b2a3a3b70e43edae938624ce550a3cbf66a3d0
 

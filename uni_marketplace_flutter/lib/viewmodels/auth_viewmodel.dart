@@ -47,7 +47,6 @@ class AuthViewModel extends ChangeNotifier {
         profileImageFile: profileImageFile,
       );
 
-
       _setError(null);
       return user;
     } catch (e) {
