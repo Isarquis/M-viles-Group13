@@ -25,6 +25,7 @@ dependencies:
   geolocator: ^14.0.0
   provider: ^6.1.1
   shared_preferences: ^2.2.2
+
   synchronized: ^3.1.0
   hive: ^2.2.3
   hive_flutter: ^1.1.0

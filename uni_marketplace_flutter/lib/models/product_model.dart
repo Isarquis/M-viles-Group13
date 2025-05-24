@@ -49,6 +49,7 @@ class Product {
     type: (data['type'] != null) ? List<String>.from(data['type']) : null,
     createdAt: _parseDateTime(data['createdAt']),
     originalImageUrl: data['originalImageUrl'],
+
   );
 }
 

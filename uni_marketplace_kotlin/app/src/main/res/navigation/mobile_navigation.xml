@@ -23,15 +23,28 @@
         android:label="@string/title_notifications"
         tools:layout="@layout/fragment_notifications" />
 
-    <!-- Agregar el fragment del mapa -->
     <fragment
         android:id="@+id/navigation_map"
         android:name="com.example.uni_matketplace_kotlin.ui.map.MapsFragment"
         android:label="Mapa"
         tools:layout="@layout/fragment_maps" />
+
     <fragment
         android:id="@+id/navigation_post"
         android:name="com.example.uni_matketplace_kotlin.ui.createproduct.CreateProductFragment"
         android:label="Post"
         tools:layout="@layout/fragment_createproduct" />
+
+    <fragment
+        android:id="@+id/navigation_discover"
+        android:name="com.example.uni_matketplace_kotlin.ui.search.SearchFragment"
+        android:label="Post"
+        tools:layout="@layout/fragment_search" />
+
+    <fragment
+        android:id="@+id/navigation_profile"
+        android:name="com.example.uni_matketplace_kotlin.ui.profile.ProfileFragment"
+        android:label="Profile"
+        tools:layout="@layout/fragment_profile" />
+
 </navigation>
