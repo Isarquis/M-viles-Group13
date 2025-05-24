@@ -32,23 +32,23 @@ class ProfileFragment : Fragment() {
         ProfileViewModelFactory(userRepository)
     }
 
-    // PROFILING STRATEGY 2: Memory and Operation Tracking
+
     private val performanceMetrics = ConcurrentHashMap<String, Long>()
     private var fragmentCreateTime: Long = 0
     private var dataLoadStartTime: Long = 0
 
-    // MICROOPTIMIZATION 3: String caching to avoid repeated concatenation
+
     private val stringCache = mutableMapOf<String, String>()
     private var currentUserId: String? = null
 
-    // MICROOPTIMIZATION 4: Lazy initialization of heavy objects
+
     private val firebaseAuth by lazy { FirebaseAuth.getInstance() }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         fragmentCreateTime = SystemClock.elapsedRealtime()
 
-        // Initialize the repository in onCreate to avoid context issues
+
         try {
             val repoInitStart = SystemClock.elapsedRealtime()
             val db = AppDatabase.getDatabase(requireContext())
