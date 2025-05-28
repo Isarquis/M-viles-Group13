@@ -26,8 +26,7 @@ class _EarnScreenState extends State<EarnScreen> {
 
   List<Product> _allProducts = [];
   List<Product> _filtered = [];
-  final ValueNotifier<List<Product>> _pageNotifier =
-      ValueNotifier<List<Product>>([]);
+  final ValueNotifier<List<Product>> _pageNotifier = ValueNotifier([]);
   bool _isLoading = false;
   bool _isLoadingMore = false;
   bool _hasMore = true;
@@ -50,25 +49,72 @@ class _EarnScreenState extends State<EarnScreen> {
   @override
   void initState() {
     super.initState();
-    _initHive();
-    _loadSearchSuggestions();
     _scrollController.addListener(() {
       _onScroll();
       _hideSearchSuggestionsOnScroll();
     });
-    _loadInitial();
+    // Arrancamos todo después del primer frame
+    WidgetsBinding.instance.addPostFrameCallback((_) => _setup());
   }
 
-  void _hideSearchSuggestionsOnScroll() {
-    if (_searchSuggestions.isNotEmpty) {
-      setState(() {
-        _searchSuggestions = [];
-      });
-    }
+  Future<void> _setup() async {
+    await _initHive();
+    await _loadInitial();
   }
 
   Future<void> _initHive() async {
     _productsBox = await Hive.openBox('cached_products');
+  }
+
+  Future<void> _loadSearchSuggestions() async {
+    final terms = await _searchHistoryDB.getRecentTerms();
+    setState(() => _searchSuggestions = terms);
+  }
+
+  Future<void> _saveSearchTerm(String term) async {
+    if (term.trim().isEmpty) return;
+    await _searchHistoryDB.insertTerm(term.trim());
+    await _loadSearchSuggestions();
+  }
+
+  void _hideSearchSuggestionsOnScroll() {
+    if (_searchSuggestions.isNotEmpty) {
+      setState(() => _searchSuggestions = []);
+    }
+  }
+
+  Future<void> _loadInitial() async {
+    setState(() {
+      _isLoading = true;
+      _showOfflineBanner = false;
+      _allProducts.clear();
+      _filtered.clear();
+      _pageNotifier.value = [];
+      _lastIndex = 0;
+      _hasMore = true;
+    });
+
+    try {
+      final conn = await Connectivity().checkConnectivity();
+      if (conn == ConnectivityResult.none) {
+        throw Exception('offline');
+      }
+      // Intento online
+      final fetched = await _firestoreService.getAllProducts();
+      _allProducts =
+          fetched
+              .where((p) => (p.status ?? '').toLowerCase() == 'available')
+              .toList();
+      await _saveProductsToHive(_allProducts);
+    } catch (_) {
+      // OFFLINE o fallo de red
+      final cached = await _loadProductsFromHive();
+      _allProducts = cached;
+      _showOfflineBanner = true;
+    } finally {
+      setState(() => _isLoading = false);
+      _applyFilterSort();
+    }
   }
 
   Future<void> _saveProductsToHive(List<Product> products) async {
@@ -77,78 +123,17 @@ class _EarnScreenState extends State<EarnScreen> {
 
   Future<List<Product>> _loadProductsFromHive() async {
     final cached = _productsBox.get('products', defaultValue: []);
-    return (cached as List).map((e) => Product.fromMap(e, '')).toList();
-  }
-
-  Future<void> _loadSearchSuggestions() async {
-    final terms = await _searchHistoryDB.getRecentTerms();
-    setState(() {
-      _searchSuggestions = terms;
-    });
-  }
-
-  Future<void> _saveSearchTerm(String term) async {
-    if (term.trim().isEmpty) return;
-    await _searchHistoryDB.insertTerm(term.trim());
-    _loadSearchSuggestions();
-  }
-
-  void _onScroll() {
-    if (_scrollController.position.pixels >=
-            _scrollController.position.maxScrollExtent - 200 &&
-        !_isLoadingMore &&
-        _hasMore) {
-      _loadMore();
-    }
-  }
-
-  Future<void> _loadInitial() async {
-    setState(() {
-      _isLoading = true;
-      _allProducts.clear();
-      _filtered.clear();
-      _pageNotifier.value = [];
-      _lastIndex = 0;
-      _hasMore = true;
-      _showOfflineBanner = false;
-    });
-
-    final connectivityResult = await Connectivity().checkConnectivity();
-
-    if (connectivityResult == ConnectivityResult.none) {
-      final cachedProducts = await _loadProductsFromHive();
-      if (cachedProducts.isNotEmpty) {
-        setState(() {
-          _allProducts = cachedProducts;
-          _showOfflineBanner = true;
-          _isLoading = false;
-        });
-        _applyFilterSort();
-        return;
-      }
-    }
-
-    final fetched = await _firestoreService.getAllProducts();
-    _allProducts =
-        fetched
-            .where((p) => (p.status ?? '').toLowerCase() == 'available')
-            .toList();
-
-    await _saveProductsToHive(_allProducts);
-
-    _applyFilterSort();
-    setState(() => _isLoading = false);
+    return (cached as List)
+        .map((e) => Product.fromMap(e as Map<String, dynamic>, ''))
+        .toList();
   }
 
   void _applyFilterSort() {
     final term = _searchController.text.trim().toLowerCase();
-
-    if (term.isNotEmpty) {
-      _saveSearchTerm(term);
-    }
+    if (term.isNotEmpty) _saveSearchTerm(term);
 
     _filtered =
-        (_selectedCategory == 'All')
+        _selectedCategory == 'All'
             ? List.from(_allProducts)
             : _allProducts
                 .where((p) => p.category == _selectedCategory)
@@ -196,17 +181,24 @@ class _EarnScreenState extends State<EarnScreen> {
 
   void _loadMore() {
     if (!_hasMore) return;
-
     setState(() => _isLoadingMore = true);
 
-    final nextIndex = min(_lastIndex + _perPage, _filtered.length);
-    final slice = _filtered.sublist(_lastIndex, nextIndex);
-
+    final next = min(_lastIndex + _perPage, _filtered.length);
+    final slice = _filtered.sublist(_lastIndex, next);
     _pageNotifier.value = [..._pageNotifier.value, ...slice];
-    _lastIndex = nextIndex;
+    _lastIndex = next;
     _hasMore = _lastIndex < _filtered.length;
 
     setState(() => _isLoadingMore = false);
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+            _scrollController.position.maxScrollExtent - 200 &&
+        !_isLoadingMore &&
+        _hasMore) {
+      _loadMore();
+    }
   }
 
   void _onSearchOrCategoryChanged() {
@@ -220,11 +212,11 @@ class _EarnScreenState extends State<EarnScreen> {
   }
 
   Widget _buildSearchSuggestions() {
-    if (_searchSuggestions.isEmpty || _searchController.text.isNotEmpty) {
+    if (_searchSuggestions.isEmpty || _searchController.text.isNotEmpty)
       return const SizedBox.shrink();
-    }
+
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 8),
+      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: Colors.white,
         border: Border.all(color: Colors.grey.shade300),
@@ -234,16 +226,14 @@ class _EarnScreenState extends State<EarnScreen> {
       child: ListView.builder(
         shrinkWrap: true,
         itemCount: _searchSuggestions.length,
-        itemBuilder: (context, index) {
-          final suggestion = _searchSuggestions[index];
+        itemBuilder: (context, i) {
+          final s = _searchSuggestions[i];
           return ListTile(
-            title: Text(suggestion),
+            title: Text(s),
             onTap: () {
-              _searchController.text = suggestion;
+              _searchController.text = s;
               _applyFilterSort();
-              setState(() {
-                _searchSuggestions = [];
-              });
+              setState(() => _searchSuggestions = []);
             },
           );
         },
@@ -301,41 +291,86 @@ class _EarnScreenState extends State<EarnScreen> {
                 ],
               ),
             ),
+
+          // Filtros + búsqueda
           Padding(
             padding: const EdgeInsets.all(8),
             child: Column(
               children: [
                 Row(
                   children: [
-                    DropdownButton<String>(
-                      value: _selectedCategory,
-                      items:
-                          _categories
-                              .map(
-                                (c) =>
-                                    DropdownMenuItem(value: c, child: Text(c)),
-                              )
-                              .toList(),
-                      onChanged: (v) {
-                        _selectedCategory = v!;
-                        _onSearchOrCategoryChanged();
-                      },
+                    SizedBox(
+                      width: 80,
+                      child: DropdownButtonFormField<String>(
+                        isDense: true,
+                        isExpanded: true,
+                        decoration: InputDecoration(
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 15,
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(
+                              color: Color(0xFF1F7A8C),
+                              width: 2,
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(
+                              color: Color(0xFF1F7A8C),
+                              width: 2,
+                            ),
+                          ),
+                        ),
+                        value: _selectedCategory,
+                        items:
+                            _categories
+                                .map(
+                                  (c) => DropdownMenuItem(
+                                    value: c,
+                                    child: Text(c),
+                                  ),
+                                )
+                                .toList(),
+                        onChanged: (v) {
+                          _selectedCategory = v!;
+                          _onSearchOrCategoryChanged();
+                        },
+                      ),
                     ),
                     const SizedBox(width: 10),
                     Expanded(
                       child: TextField(
                         controller: _searchController,
-                        decoration: const InputDecoration(
+                        onTap: _loadSearchSuggestions,
+                        decoration: InputDecoration(
                           hintText: 'Search…',
-                          border: OutlineInputBorder(),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 15,
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(
+                              color: Color(0xFF1F7A8C),
+                              width: 2,
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(
+                              color: Color(0xFF1F7A8C),
+                              width: 2,
+                            ),
+                          ),
                         ),
                         onChanged: (text) {
                           if (_debounce?.isActive ?? false) _debounce!.cancel();
                           _debounce = Timer(
                             const Duration(milliseconds: 300),
-                            () {
-                              _applyFilterSort();
-                            },
+                            _applyFilterSort,
                           );
                         },
                         onSubmitted: (_) => _applyFilterSort(),
@@ -351,7 +386,7 @@ class _EarnScreenState extends State<EarnScreen> {
                         ),
                         padding: const EdgeInsets.symmetric(
                           horizontal: 20,
-                          vertical: 12,
+                          vertical: 17,
                         ),
                       ),
                       child: const Text(
@@ -392,30 +427,31 @@ class _EarnScreenState extends State<EarnScreen> {
               ],
             ),
           ),
+
+          // Lista paginada
           Expanded(
             child:
                 _isLoading
                     ? const Center(child: CircularProgressIndicator())
                     : ValueListenableBuilder<List<Product>>(
                       valueListenable: _pageNotifier,
-                      builder: (context, page, _) {
-                        return ListView.builder(
-                          controller: _scrollController,
-                          itemCount: page.length + (_hasMore ? 1 : 0),
-                          itemBuilder: (ctx, i) {
-                            if (i == page.length) {
-                              return const Padding(
-                                padding: EdgeInsets.all(8),
-                                child: Center(
-                                  child: CircularProgressIndicator(),
-                                ),
-                              );
-                            }
-                            final product = page[i];
-                            return _buildProductCard(product);
-                          },
-                        );
-                      },
+                      builder:
+                          (_, page, __) => ListView.builder(
+                            controller: _scrollController,
+                            itemCount: page.length + (_hasMore ? 1 : 0),
+                            itemBuilder: (ctx, i) {
+                              if (i == page.length) {
+                                return const Padding(
+                                  padding: EdgeInsets.all(8),
+                                  child: Center(
+                                    child: CircularProgressIndicator(),
+                                  ),
+                                );
+                              }
+                              final product = page[i];
+                              return _buildProductCard(product);
+                            },
+                          ),
                     ),
           ),
         ],
@@ -437,6 +473,7 @@ class _EarnScreenState extends State<EarnScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Imagen
             Container(
               width: double.infinity,
               decoration: BoxDecoration(
@@ -453,23 +490,23 @@ class _EarnScreenState extends State<EarnScreen> {
                 child:
                     (product.image ?? '').startsWith('http')
                         ? CachedNetworkImage(
-                          imageUrl: product.image ?? '',
+                          imageUrl: product.image!,
                           fit: BoxFit.contain,
                           height: 200,
                           placeholder:
-                              (context, url) => const Center(
+                              (_, __) => const Center(
                                 child: CircularProgressIndicator(),
                               ),
-                          errorWidget:
-                              (context, url, error) => const Icon(Icons.error),
+                          errorWidget: (_, __, ___) => const Icon(Icons.error),
                         )
                         : Image.asset(
-                          product.image ?? '',
+                          product.image!,
                           fit: BoxFit.contain,
                           height: 200,
                         ),
               ),
             ),
+            // Título / precio / acciones
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
               child: Column(
@@ -497,17 +534,16 @@ class _EarnScreenState extends State<EarnScreen> {
                       Row(
                         children: [
                           ElevatedButton(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder:
-                                      (context) => SellProductDetail(
-                                        productId: product.id,
-                                      ),
+                            onPressed:
+                                () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder:
+                                        (_) => SellProductDetail(
+                                          productId: product.id,
+                                        ),
+                                  ),
                                 ),
-                              );
-                            },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF1F7A8C),
                               shape: RoundedRectangleBorder(
@@ -525,11 +561,10 @@ class _EarnScreenState extends State<EarnScreen> {
                           const SizedBox(width: 8),
                           IconButton(
                             icon: const Icon(Icons.share),
-                            onPressed: () {
-                              Share.share(
-                                'Check out this listing: ${product.title} for \$${product.price?.toStringAsFixed(1)} COP',
-                              );
-                            },
+                            onPressed:
+                                () => Share.share(
+                                  'Check out this listing: ${product.title} for \$${product.price?.toStringAsFixed(1)} COP',
+                                ),
                           ),
                         ],
                       ),
